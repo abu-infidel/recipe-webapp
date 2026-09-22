@@ -47,7 +47,14 @@ final class Database
                 // Real prepared statements, not client-side interpolation.
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 PDO::ATTR_STRINGIFY_FETCHES  => false,
-                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci, sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
+                // The session timezone is pinned to PHP's, so NOW() and PHP's
+                // time() agree. Without this, every comparison between a
+                // stored timestamp and the current time is wrong by the
+                // offset — the worker reads as silent seconds after it ran,
+                // and scheduled publishing fires at the wrong hour.
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci,"
+                    . " time_zone = '" . self::utcOffset() . "',"
+                    . " sql_mode='STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION'",
             ]);
         } catch (\PDOException $e) {
             // Never leak credentials into an error page.
@@ -55,6 +62,24 @@ final class Database
         }
 
         return self::$pdo;
+    }
+
+    /**
+     * PHP's current UTC offset as MySQL wants it ("+03:30").
+     *
+     * Named zones are not usable here: MySQL only knows them when the
+     * timezone tables have been loaded, which they are not on most shared
+     * hosting. A numeric offset always works.
+     */
+    private static function utcOffset(): string
+    {
+        $timezone = new \DateTimeZone(Config::string('site.timezone', 'UTC'));
+        $offset = $timezone->getOffset(new \DateTimeImmutable('now', $timezone));
+
+        $sign = $offset < 0 ? '-' : '+';
+        $offset = abs($offset);
+
+        return sprintf('%s%02d:%02d', $sign, intdiv($offset, 3600), intdiv($offset % 3600, 60));
     }
 
     /** Inject a connection. Used by tests and by the CLI tools. */

@@ -32,7 +32,9 @@ $request = Request::capture();
 // than a rendered page. Manifest paths (/llms.txt and friends) are never
 // gated: assistants should learn what the site covers cheaply, and it is
 // bulk crawling the host cannot absorb, not being described.
-if ($request->path !== '/api/verify' && !ChallengeController::hasPass($request->ip)) {
+if (!str_starts_with($request->path, '/admin')
+    && $request->path !== '/api/verify'
+    && !ChallengeController::hasPass($request->ip)) {
     $gate = \App\Support\BotGate::inspect($request);
 
     if ($gate['verdict'] === \App\Support\BotGate::BLOCK) {
@@ -67,6 +69,32 @@ $router->get(
         return Response::text("Not found\n", 404)->noCache();
     }
 );
+
+// ------------------------------------------------------------------- admin
+// English, LTR, behind a session cookie. The only cookie this site sets, and
+// it is scoped to /admin.
+$router->get('/admin/login', \App\Http\Controllers\Admin\AuthController::loginForm(...));
+$router->post('/admin/login', \App\Http\Controllers\Admin\AuthController::login(...));
+$router->post('/admin/logout', \App\Http\Controllers\Admin\AuthController::logout(...));
+
+$router->get('/admin', \App\Http\Controllers\Admin\DashboardController::index(...));
+
+$router->get('/admin/articles', \App\Http\Controllers\Admin\ArticleController::index(...));
+$router->post('/admin/articles/commission', \App\Http\Controllers\Admin\ArticleController::commission(...));
+$router->get('/admin/articles/{id}', \App\Http\Controllers\Admin\ArticleController::review(...));
+$router->post('/admin/articles/{id}/save', \App\Http\Controllers\Admin\ArticleController::save(...));
+$router->post('/admin/articles/{id}/publish', \App\Http\Controllers\Admin\ArticleController::publish(...));
+$router->post('/admin/articles/{id}/unpublish', \App\Http\Controllers\Admin\ArticleController::unpublish(...));
+
+$router->get('/admin/fields', \App\Http\Controllers\Admin\FieldController::index(...));
+$router->post('/admin/fields/create', \App\Http\Controllers\Admin\FieldController::create(...));
+$router->post('/admin/fields/{id}/update', \App\Http\Controllers\Admin\FieldController::update(...));
+$router->post('/admin/fields/{id}/delete', \App\Http\Controllers\Admin\FieldController::delete(...));
+
+$router->get('/admin/settings', \App\Http\Controllers\Admin\SettingsController::index(...));
+$router->post('/admin/settings/ad-slot/{id}', \App\Http\Controllers\Admin\SettingsController::updateAdSlot(...));
+$router->post('/admin/settings/flush-cache', \App\Http\Controllers\Admin\SettingsController::flushCache(...));
+$router->post('/admin/settings/unblock', \App\Http\Controllers\Admin\SettingsController::unblock(...));
 
 // ------------------------------------------------------------- worker API
 // The VPS worker pulls from here; the site never calls out. Authenticated by
