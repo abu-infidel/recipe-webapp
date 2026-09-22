@@ -1,0 +1,20 @@
+# Local configuration — contains database credentials and API keys. Never commit.
+app/config.local.php
+worker/.env
+
+# Generated at runtime
+public/cache/pages/*
+!public/cache/pages/.gitkeep
+public/cache/tree.json
+public/media/*
+!public/media/.gitkeep
+var/
+*.log
+
+# Dependencies
+node_modules/
+vendor/
+
+# Local dev scratch
+.dev/
+*.sqlite

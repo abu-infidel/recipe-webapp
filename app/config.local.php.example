@@ -1,0 +1,36 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Copy this file to app/config.local.php and fill in real values.
+ *
+ * config.local.php is gitignored. Never put credentials in app/config.php.
+ * Only the keys you want to override need to appear here.
+ */
+return [
+    'site' => [
+        'domain' => 'example.ir',
+        'scheme' => 'https',
+    ],
+
+    'db' => [
+        'host' => 'localhost',
+        'name' => 'cpaneluser_recipes',
+        'user' => 'cpaneluser_recipes',
+        'pass' => 'CHANGE-ME',
+    ],
+
+    'worker' => [
+        // The shared secret the VPS worker signs its requests with.
+        // Generate with: php -r "echo bin2hex(random_bytes(32));"
+        'hmac_secret' => 'CHANGE-ME',
+        'ip_allowlist' => ['203.0.113.10'],   // your VPS public IP
+    ],
+
+    'security' => [
+        // Generate with: php -r "echo bin2hex(random_bytes(32));"
+        'app_key' => 'CHANGE-ME',
+    ],
+
+    'debug' => false,
+];
