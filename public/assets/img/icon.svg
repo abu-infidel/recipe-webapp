@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="نماد سایت">
+  <rect width="64" height="64" rx="14" fill="#b4541f"/>
+  <g fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 48h36"/>
+    <path d="M19 48V26a13 13 0 0 1 26 0v22"/>
+    <path d="M26 17v-5M38 17v-5"/>
+  </g>
+</svg>

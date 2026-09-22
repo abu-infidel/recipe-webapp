@@ -193,4 +193,27 @@ final class PersianTextTest extends TestCase
         $this->assertSame(1, PersianText::readingMinutes('برنج'));
         $this->assertSame(2, PersianText::readingMinutes(str_repeat('کلمه ', 300)));
     }
+
+    // ---- shared fixture --------------------------------------------------
+
+    /**
+     * The fixture is also run against public/assets/js/persian.js by
+     * tools/tests/run-js.js. Changing behaviour here without changing it there
+     * makes the instant-search box suggest articles the server cannot find.
+     */
+    public function testMatchesSharedFixture(): void
+    {
+        $raw = file_get_contents(__DIR__ . '/fixtures/persian.json');
+        $this->assertTrue($raw !== false, 'fixture must be readable');
+
+        $fixture = json_decode((string) $raw, true);
+        $this->assertTrue(is_array($fixture), 'fixture must be valid JSON');
+
+        foreach ($fixture['normalize'] as $case) {
+            $this->assertSame($case['out'], PersianText::normalize($case['in']), 'normalize drifted from the fixture');
+        }
+        foreach ($fixture['tokenize'] as $case) {
+            $this->assertSame($case['out'], PersianText::tokenize($case['in']), 'tokenize drifted from the fixture');
+        }
+    }
 }

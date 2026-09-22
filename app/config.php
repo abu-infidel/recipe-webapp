@@ -27,11 +27,14 @@ return [
         // The router understands both regardless; this only decides which URL
         // is canonical and therefore what links and <link rel=canonical> emit.
         'mode'            => 'path',
-        'field_prefix'    => 'f',
-        'article_prefix'  => 'a',
-        // Maps a hostname to a root field slug when mode is 'subdomain'.
-        'subdomain_map'   => [],
-        'reserved_hosts'  => ['www', 'admin', 'api', 'static', 'media'],
+        'reserved_hosts'  => ['www', 'admin', 'api', 'static', 'media', 'mail', 'cpanel', 'webmail'],
+        // Top-level path segments the content resolver must never claim.
+        // A field slug colliding with one of these is rejected at creation.
+        'reserved_segments' => [
+            'admin', 'api', 'assets', 'media', 'cache', 'search', 'about',
+            'about-for-ai', 'offline', 'sitemap.xml', 'robots.txt', 'llms.txt',
+            '.well-known', 'favicon.ico', 'sw.js', 'manifest.webmanifest',
+        ],
     ],
 
     'db' => [

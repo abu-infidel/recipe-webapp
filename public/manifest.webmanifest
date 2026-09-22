@@ -1,0 +1,15 @@
+{
+  "name": "دانشنامه دستور پخت و راهنما",
+  "short_name": "دستور پخت",
+  "description": "دستورهای پخت و راهنماهای گام‌به‌گام، با منابع",
+  "lang": "fa-IR",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfaf7",
+  "theme_color": "#b4541f",
+  "icons": [
+    { "src": "/assets/img/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

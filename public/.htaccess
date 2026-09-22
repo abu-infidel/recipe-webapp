@@ -1,0 +1,79 @@
+# ===========================================================================
+# LiteSpeed / Apache configuration
+#
+# The static page cache is the important part: a published page is written to
+# cache/pages/<hash>.html and served from disk without starting PHP at all.
+# That is what lets shared hosting carry real traffic.
+# ===========================================================================
+
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# --- HTTPS ---------------------------------------------------------------
+# Uncomment once the domain has a certificate (cPanel AutoSSL issues one
+# automatically a few minutes after the domain resolves).
+# RewriteCond %{HTTPS} !=on
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+# --- static page cache ---------------------------------------------------
+# GET requests with no query string are served straight from the generated
+# file when one exists. Publishing clears the affected entries.
+RewriteCond %{REQUEST_METHOD} ^GET$
+RewriteCond %{QUERY_STRING} ^$
+RewriteCond %{HTTP:Cookie} !admin_session
+RewriteCond %{DOCUMENT_ROOT}/cache/pages/%{HTTP_HOST}%{REQUEST_URI}/index.html -f
+RewriteRule .* /cache/pages/%{HTTP_HOST}%{REQUEST_URI}/index.html [L]
+
+# --- front controller ----------------------------------------------------
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [L]
+</IfModule>
+
+# --- caching -------------------------------------------------------------
+<IfModule mod_expires.c>
+ExpiresActive On
+# Assets carry a ?v= fingerprint derived from the file's modification time,
+# so a far-future expiry is safe and a changed file is fetched immediately.
+ExpiresByType text/css                "access plus 1 year"
+ExpiresByType application/javascript  "access plus 1 year"
+ExpiresByType font/woff2              "access plus 1 year"
+ExpiresByType image/svg+xml           "access plus 1 month"
+ExpiresByType image/webp              "access plus 1 month"
+ExpiresByType image/jpeg              "access plus 1 month"
+ExpiresByType image/png               "access plus 1 month"
+ExpiresByType text/html               "access plus 0 seconds"
+</IfModule>
+
+<IfModule mod_deflate.c>
+AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript application/json image/svg+xml
+</IfModule>
+
+# --- security ------------------------------------------------------------
+# The full Content-Security-Policy is set per response in PHP, because it has
+# to widen when an ad network is switched on. These are the static ones.
+<IfModule mod_headers.c>
+Header always set X-Content-Type-Options "nosniff"
+Header always set Referrer-Policy "no-referrer"
+Header always set X-Frame-Options "DENY"
+Header unset X-Powered-By
+</IfModule>
+ServerSignature Off
+
+# Never serve dotfiles, config, or anything from the app directory.
+<FilesMatch "^\.|(\.(ini|log|sql|md|json|lock|yml|yaml|sh|bak)|composer\.(json|lock))$">
+  Require all denied
+</FilesMatch>
+<Files "manifest.webmanifest">
+  Require all granted
+</Files>
+<Files "*.webmanifest">
+  Require all granted
+</Files>
+
+# UTF-8 everywhere. Persian filenames and content depend on it.
+AddDefaultCharset UTF-8
+AddType font/woff2 .woff2
