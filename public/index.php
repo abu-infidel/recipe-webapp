@@ -68,6 +68,14 @@ $router->get(
     }
 );
 
+// ------------------------------------------------------------- worker API
+// The VPS worker pulls from here; the site never calls out. Authenticated by
+// bearer token plus an HMAC over the body with a timestamp and a nonce.
+$router->post('/api/worker/jobs/next', \App\Http\Controllers\WorkerApiController::nextJob(...));
+$router->post('/api/worker/jobs/{id}/result', \App\Http\Controllers\WorkerApiController::completeJob(...));
+$router->post('/api/worker/jobs/{id}/heartbeat', \App\Http\Controllers\WorkerApiController::heartbeat(...));
+$router->post('/api/worker/validate', \App\Http\Controllers\WorkerApiController::validateDraft(...));
+
 // ------------------------------------------------- machine-readable manifests
 // Always served, never rate limited. A chatbot learns what the site covers in
 // one cheap request instead of crawling thousands of pages.
