@@ -216,4 +216,54 @@ final class PersianTextTest extends TestCase
             $this->assertSame($case['out'], PersianText::tokenize($case['in']), 'tokenize drifted from the fixture');
         }
     }
+
+    // ---- normalizeWithMap ------------------------------------------------
+
+    /**
+     * normalizeWithMap replays the folding by hand so it can track offsets.
+     * If it ever diverges from normalize(), the auto-linker starts splicing
+     * links onto the wrong characters, so the two are checked against the
+     * same fixture.
+     */
+    public function testNormalizeWithMapMatchesNormalize(): void
+    {
+        $raw = file_get_contents(__DIR__ . '/fixtures/persian.json');
+        $fixture = json_decode((string) $raw, true);
+
+        foreach ($fixture['normalize'] as $case) {
+            [$normalised] = PersianText::normalizeWithMap($case['in']);
+            $this->assertSame(
+                PersianText::normalize($case['in']),
+                $normalised,
+                'normalizeWithMap drifted from normalize'
+            );
+        }
+    }
+
+    public function testNormalizeWithMapProducesOneIndexPerCharacter(): void
+    {
+        [$normalised, $map] = PersianText::normalizeWithMap('قورمه سبزی');
+        $this->assertSame(mb_strlen($normalised, 'UTF-8'), count($map));
+    }
+
+    public function testNormalizeWithMapPointsAtTheRightSourceCharacter(): void
+    {
+        $text = 'خورش قورمه سبزی';
+        [$normalised, $map] = PersianText::normalizeWithMap($text);
+
+        $position = mb_strpos($normalised, 'قورمه', 0, 'UTF-8');
+        $this->assertTrue($position !== false, 'phrase must be found');
+        $this->assertSame('قورمه', mb_substr($text, $map[$position], 5, 'UTF-8'));
+    }
+
+    public function testNormalizeWithMapSurvivesZwnjAndDiacritics(): void
+    {
+        // The characters that fold away must not shift the map.
+        $text = "نان\u{200C}های سَنتی";
+        [$normalised, $map] = PersianText::normalizeWithMap($text);
+
+        $position = mb_strpos($normalised, 'سنتی', 0, 'UTF-8');
+        $this->assertTrue($position !== false, 'diacritics must be ignored when matching');
+        $this->assertSame('س', mb_substr($text, $map[$position], 1, 'UTF-8'));
+    }
 }

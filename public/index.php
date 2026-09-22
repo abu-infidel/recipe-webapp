@@ -17,6 +17,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Router;
 use App\Http\Controllers\ArticleController;
+use App\Http\Controllers\ChallengeController;
 use App\Http\Controllers\FieldController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ManifestController;
@@ -25,6 +26,29 @@ use App\Http\ContentResolver;
 use App\Core\Url;
 
 $request = Request::capture();
+
+// ---------------------------------------------------------------- bot gate
+// Runs before routing so a blocked client costs one indexed lookup rather
+// than a rendered page. Manifest paths (/llms.txt and friends) are never
+// gated: assistants should learn what the site covers cheaply, and it is
+// bulk crawling the host cannot absorb, not being described.
+if ($request->path !== '/api/verify' && !ChallengeController::hasPass($request->ip)) {
+    $gate = \App\Support\BotGate::inspect($request);
+
+    if ($gate['verdict'] === \App\Support\BotGate::BLOCK) {
+        Response::text("Too many requests.\n", 429)
+            ->withHeader('Retry-After', (string) max(1, $gate['retry_after']))
+            ->noCache()
+            ->send();
+        exit;
+    }
+
+    if ($gate['verdict'] === \App\Support\BotGate::CHALLENGE) {
+        ChallengeController::show($request, $gate['reason'], $gate['retry_after'])->send();
+        exit;
+    }
+}
+
 $router  = new Router();
 
 // ---------------------------------------------------------------- site pages
@@ -32,6 +56,17 @@ $router->get('/', HomeController::index(...));
 $router->get('/search', SearchController::index(...));
 $router->get('/api/tree.json', HomeController::tree(...));
 $router->get('/api/search.json', SearchController::json(...));
+$router->post('/api/verify', ChallengeController::verify(...));
+
+// The honeypot is hidden from readers and from screen readers, so only
+// something following every href in the markup ever reaches it.
+$router->get(
+    \App\Core\Config::string('security.bot_gate.honeypot_path', '/archive/all-entries'),
+    static function (Request $request): Response {
+        \App\Support\BotGate::block($request->ip, 'honeypot');
+        return Response::text("Not found\n", 404)->noCache();
+    }
+);
 
 // ------------------------------------------------- machine-readable manifests
 // Always served, never rate limited. A chatbot learns what the site covers in

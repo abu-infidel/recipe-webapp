@@ -103,9 +103,12 @@ return [
             'search'  => ['limit' => 20,  'window' => 60],
             'asset'   => ['limit' => 300, 'window' => 60],
             'api'     => ['limit' => 30,  'window' => 60],
-            // A human never reads 120 distinct articles in a day. A scraper
-            // does it in two minutes.
-            'daily_article_cap' => 120,
+            // Article-page requests per IP per day. Exceeding it triggers
+            // the proof-of-work challenge, never an outright block: Iranian
+            // mobile carriers use CGNAT, so one address can legitimately
+            // represent thousands of readers. A scraper pays the cost on
+            // every request; a person solves it once per half hour.
+            'daily_article_cap' => 600,
         ],
         'bot_gate' => [
             'enabled'         => true,

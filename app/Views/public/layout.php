@@ -118,6 +118,11 @@ $title = isset($pageTitle) && $pageTitle !== '' ? $pageTitle . ' — ' . $siteNa
       <a href="/search">جست‌وجو</a>
       <a href="/about-for-ai">درباره سایت</a>
       <a href="/llms.txt">llms.txt</a>
+      <?php /* Honeypot: invisible to readers and to screen readers, so only a
+               crawler following every href in the markup will hit it. */ ?>
+      <a href="<?= e(\App\Core\Config::string('security.bot_gate.honeypot_path')) ?>"
+         aria-hidden="true" tabindex="-1"
+         style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">.</a>
     </nav>
   </div>
 </footer>

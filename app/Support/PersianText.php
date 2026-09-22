@@ -191,6 +191,76 @@ final class PersianText
         return $keep;
     }
 
+    /**
+     * normalize(), plus a map from each character of the result back to its
+     * index in the input.
+     *
+     * Needed by the auto-linker, which has to match on normalised text (a
+     * reader may write "کته‌ای" where the alias is "کته ای") but must splice
+     * the link onto the original characters.
+     *
+     * Normalising character by character and concatenating does not work:
+     * normalize() trims, so every space would vanish and no multi-word phrase
+     * could ever match. The folding is therefore replayed here with separator
+     * handling made explicit. testNormalizeWithMapMatchesNormalize keeps the
+     * two in agreement.
+     *
+     * @return array{0:string, 1:list<int>} normalised text, and map[i] = source index
+     */
+    public static function normalizeWithMap(string $text): array
+    {
+        $out = '';
+        $map = [];
+        $pendingSpace = false;
+        $length = mb_strlen($text, 'UTF-8');
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = mb_substr($text, $i, 1, 'UTF-8');
+
+            if (in_array($char, self::INVISIBLES, true)) {
+                continue;
+            }
+
+            $char = strtr($char, self::CHAR_FOLD);
+            $char = strtr($char, self::INDEX_FOLD);
+
+            if ($char === '') {
+                continue;   // folded away entirely, e.g. a standalone hamza
+            }
+            if (preg_match(self::DIACRITICS, $char) === 1) {
+                continue;
+            }
+
+            if ($char === self::ZWNJ) {
+                $pendingSpace = true;
+                continue;
+            }
+
+            $char = mb_strtolower(self::toAsciiDigits($char), 'UTF-8');
+
+            if (preg_match('/[^\p{L}\p{M}\p{N}_]/u', $char) === 1) {
+                $pendingSpace = true;
+                continue;
+            }
+
+            // A separator only becomes a space when real text follows it, so
+            // leading and trailing runs disappear exactly as trim() would.
+            if ($pendingSpace && $out !== '') {
+                $out .= ' ';
+                $map[] = $i;
+            }
+            $pendingSpace = false;
+
+            $charLength = mb_strlen($char, 'UTF-8');
+            for ($j = 0; $j < $charLength; $j++) {
+                $map[] = $i;
+            }
+            $out .= $char;
+        }
+
+        return [$out, $map];
+    }
+
     public static function toAsciiDigits(string $text): string
     {
         return str_replace(
