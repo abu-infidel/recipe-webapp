@@ -111,6 +111,13 @@ $router->get('/llms.txt', ManifestController::llmsTxt(...));
 $router->get('/.well-known/ai-manifest.json', ManifestController::aiManifest(...));
 $router->get('/about-for-ai', ManifestController::aboutForAi(...));
 $router->get('/robots.txt', ManifestController::robots(...));
+$router->get('/offline', static fn(Request $r) => Response::html(
+    \App\Core\View::page('public.offline', 'public.layout', [
+        'pageTitle' => 'آفلاین',
+        'bodyClass' => 'page-offline',
+        'noIndex'   => true,
+    ])
+)->cacheFor(86400));
 $router->get('/sitemap.xml', ManifestController::sitemap(...));
 
 // ------------------------------------------------------------ content lookup
@@ -148,6 +155,28 @@ try {
             500
           )
         : \App\Http\Controllers\ErrorController::serverError($request);
+}
+
+// ------------------------------------------------------- write-through cache
+// A published page is written to disk so the next request for it is served by
+// the web server without starting PHP at all (see .htaccess). Only plain GETs
+// of public pages are cached; admin, the worker API and anything with a query
+// string never are.
+if (
+    $request->isGet()
+    && $response->status() === 200
+    && $request->query === []
+    && !str_starts_with($request->path, '/admin')
+    && !str_starts_with($request->path, '/api/')
+    && $request->path !== '/search'
+    && \App\Http\Controllers\Admin\AdminAuthProbe::isAnonymous()
+    && str_contains($response->headers()['cache-control'] ?? '', 'public')
+) {
+    \App\Core\PageCache::put(
+        Config::string('site.domain'),
+        $request->path,
+        $response->body()
+    );
 }
 
 $response->send();

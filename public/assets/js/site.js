@@ -129,3 +129,49 @@
       .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 })();
+
+/**
+ * Service worker registration and the "save this section offline" button.
+ *
+ * Separate IIFE so a failure here cannot break the theme toggle or the search
+ * box above it.
+ */
+(function () {
+  'use strict';
+
+  if (!('serviceWorker' in navigator)) return;
+
+  // Registered after load so it never competes with the first paint on a slow
+  // connection, which is the common case here.
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {
+      // No service worker means no offline reading. The site still works.
+    });
+  });
+
+  var button = document.querySelector('[data-save-offline]');
+  if (!button) return;
+
+  button.addEventListener('click', function () {
+    var urls;
+    try {
+      urls = JSON.parse(button.getAttribute('data-urls') || '[]');
+    } catch (e) {
+      return;
+    }
+
+    if (!urls.length || !navigator.serviceWorker.controller) return;
+
+    button.disabled = true;
+    button.textContent = 'در حال ذخیره…';
+
+    navigator.serviceWorker.controller.postMessage({ type: 'cache-urls', urls: urls });
+
+    navigator.serviceWorker.addEventListener('message', function handler(event) {
+      if (event.data && event.data.type === 'cached') {
+        navigator.serviceWorker.removeEventListener('message', handler);
+        button.textContent = 'برای خواندن آفلاین ذخیره شد';
+      }
+    });
+  });
+})();

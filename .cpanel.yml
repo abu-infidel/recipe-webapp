@@ -1,0 +1,36 @@
+---
+# cPanel Git Version Control deployment.
+#
+# In cPanel: Git Version Control -> Manage -> Pull or Deploy -> Update from
+# Remote, then Deploy HEAD Commit. cPanel runs the tasks below.
+#
+# Application code goes to ~/app, OUTSIDE the web root, so a misconfigured
+# server can never serve config.local.php or any source file over HTTP.
+# Only public/ is exposed.
+#
+# Replace USERNAME with your cPanel account name before the first deploy.
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/USERNAME
+    - export REPOPATH=/home/USERNAME/repositories/recipe-webapp
+
+    # Application code, above the web root.
+    - /bin/mkdir -p $DEPLOYPATH/app
+    - /bin/cp -R $REPOPATH/app/. $DEPLOYPATH/app/
+    - /bin/mkdir -p $DEPLOYPATH/db $DEPLOYPATH/tools
+    - /bin/cp -R $REPOPATH/db/. $DEPLOYPATH/db/
+    - /bin/cp -R $REPOPATH/tools/. $DEPLOYPATH/tools/
+
+    # config.local.php is never in git; it stays where it is between deploys.
+    - /bin/test -f $DEPLOYPATH/app/config.local.php || /bin/cp $REPOPATH/app/config.local.php.example $DEPLOYPATH/app/config.local.php
+
+    # The public web root.
+    - /bin/cp -R $REPOPATH/public/. $DEPLOYPATH/public_html/
+    - /bin/mkdir -p $DEPLOYPATH/public_html/cache/pages $DEPLOYPATH/public_html/media
+    - /bin/chmod -R 755 $DEPLOYPATH/public_html/cache $DEPLOYPATH/public_html/media
+
+    # Publishing rewrites these, but a stale cache after a template change
+    # would serve the old markup until something republishes.
+    - /bin/rm -rf $DEPLOYPATH/public_html/cache/pages/*
+
+    - /bin/echo "Deployed. Now run migrations from /admin or with: php tools/migrate.php"

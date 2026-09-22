@@ -78,5 +78,26 @@ use App\Core\Url;
     <?php endif; ?>
   </section>
 
+  <?php if ($articles !== []): ?>
+    <?php
+      // Everything in this branch, so a reader can take the section with them
+      // before the connection goes. Handled entirely by the service worker;
+      // nothing is sent to the server.
+      $offlineUrls = ['/' . $field['path']];
+      foreach ($articles as $a) {
+          $offlineUrls[] = '/' . ($a['field_path'] ?? $field['path']) . '/' . $a['slug'];
+      }
+    ?>
+    <p style="margin-block-start: var(--space-5)">
+      <button class="rail__back" type="button"
+              data-save-offline data-urls="<?= e(ejs($offlineUrls)) ?>">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        ذخیره این بخش برای خواندن آفلاین
+      </button>
+    </p>
+  <?php endif; ?>
+
   <?= \App\Core\View::render('partials.ad_slot', ['slot' => 'field-footer', 'fieldId' => (int) $field['id']]) ?>
 </div>
