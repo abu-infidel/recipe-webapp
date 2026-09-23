@@ -782,8 +782,8 @@ a.orbit__center:hover, a.orbit__center:focus-visible { color: color-mix(in srgb,
 
 @media (min-width: 60rem) {
   .article-layout { grid-template-columns: 17rem minmax(0, 1fr); }
-  .article-layout[data-toc='left'] { grid-template-columns: minmax(0, 1fr) 17rem; }
-  .article-layout[data-toc='left'] .article-sidebar { order: 2; }
+  .article-layout[data-toc-side='left'] { grid-template-columns: minmax(0, 1fr) 17rem; }
+  .article-layout[data-toc-side='left'] .article-sidebar { order: 2; }
 }
 
 /* ----------------------------------------------------------------- sidebar */

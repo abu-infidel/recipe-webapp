@@ -198,4 +198,22 @@ final class ThemeTest extends TestCase
             $this->assertStringNotContains('{{', $html, "{$type}: no unrendered tags");
         }
     }
+
+    /**
+     * article.js finds the contents with querySelector('[data-toc]'). When the
+     * layout wrapper also carried data-toc (for which side the contents go
+     * on), the script matched the wrapper first and, on phones, hid the whole
+     * article. A hook attribute must name exactly one element.
+     */
+    public function testArticleScriptHooksAreUnambiguous(): void
+    {
+        $this->boot();
+        $theme = Theme::load('default');
+        $html = $theme->render('article', \App\Http\UiContract::fixture('article', $theme));
+
+        foreach (['data-toc', 'data-toc-toggle', 'data-scaler', 'data-steps', 'data-steps-reset'] as $hook) {
+            $count = preg_match_all('/\s' . preg_quote($hook, '/') . '(?=[\s>=])/', $html);
+            $this->assertSame(1, $count, "exactly one element carries {$hook}");
+        }
+    }
 }
