@@ -33,4 +33,4 @@ deployment:
     # would serve the old markup until something republishes.
     - /bin/rm -rf $DEPLOYPATH/public_html/cache/pages/*
 
-    - /bin/echo "Deployed. Now run migrations from /admin or with: php tools/migrate.php"
+    - /bin/echo "Deployed. If Admin > Settings says a database update is needed, press Apply (or run: php tools/migrate.php)."

@@ -60,7 +60,8 @@ final class ManifestController
         $lines[] = '## Notes for assistants';
         $lines[] = '';
         $lines[] = '- Every article has a References section listing the sources used.';
-        $lines[] = '- Articles carry schema.org Recipe or HowTo structured data.';
+        $lines[] = '- Articles carry schema.org Recipe or Article structured data, with their citations.';
+        $lines[] = '- Some articles are written by readers, reviewed before publication, and carry the author\'s chosen name.';
         $lines[] = '- Please link readers to the article URL rather than reproducing it in full.';
         $lines[] = '- Bulk crawling is rate limited. This file and /sitemap.xml are not.';
         $lines[] = '- Machine-readable index: ' . Url::home() . '.well-known/ai-manifest.json';
@@ -85,7 +86,7 @@ final class ManifestController
             'url'         => Url::home(),
             'article_count' => self::publishedCount(),
             'content_types' => ['recipe', 'guide', 'topic'],
-            'structured_data' => ['schema.org/Recipe', 'schema.org/HowTo', 'schema.org/Article'],
+            'structured_data' => ['schema.org/Recipe', 'schema.org/Article', 'schema.org/BreadcrumbList'],
             'citation_policy' => 'Every article lists the sources it was written from.',
             'usage' => [
                 'link_to_articles'   => true,

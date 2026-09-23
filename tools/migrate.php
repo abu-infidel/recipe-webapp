@@ -23,7 +23,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Config;
 use App\Core\Database;
-use App\Support\SqlScript;
+use App\Support\Migrator;
 
 $argvFlags = array_slice($argv, 1);
 $status = in_array('--status', $argvFlags, true);
@@ -60,55 +60,21 @@ if ($fresh) {
     $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
 }
 
-$pdo->exec(
-    'CREATE TABLE IF NOT EXISTS `migrations` (
-        `version` VARCHAR(20) NOT NULL,
-        `applied_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`version`)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
-);
-
-$applied = Database::column('SELECT version FROM migrations');
-
 if ($status) {
-    foreach ($files as $file) {
-        $version = substr(basename($file), 0, 3);
-        printf(
-            "  %s  %s\n",
-            in_array($version, $applied, true) ? "\033[32mapplied\033[0m" : "\033[33mpending\033[0m",
-            basename($file)
-        );
+    foreach (Migrator::status() as $migration) {
+        printf("  %s  %s\n", $migration['applied'] ? "\033[32mapplied\033[0m" : "\033[33mpending\033[0m", $migration['file']);
     }
     exit(0);
 }
 
-$ran = 0;
-foreach ($files as $file) {
-    $version = substr(basename($file), 0, 3);
-    if (in_array($version, $applied, true)) {
-        continue;
-    }
+$result = Migrator::applyPending(static function (string $file): void {
+    printf("  applying %s ...\n", $file);
+});
 
-    printf("  applying %s ... ", basename($file));
-
-    try {
-        $sql = file_get_contents($file);
-        if ($sql === false) {
-            throw new \RuntimeException('could not read file');
-        }
-
-        foreach (SqlScript::split($sql) as $statement) {
-            $pdo->exec($statement);
-        }
-
-        Database::insert('migrations', ['version' => $version]);
-        echo "\033[32mok\033[0m\n";
-        $ran++;
-    } catch (\Throwable $e) {
-        echo "\033[31mfailed\033[0m\n";
-        fwrite(STDERR, "\n  " . $e->getMessage() . "\n");
-        exit(1);
-    }
+if ($result['failed'] !== null) {
+    fwrite(STDERR, "\033[31m  {$result['failed']} failed:\033[0m {$result['error']}\n");
+    exit(1);
 }
 
+$ran = count($result['applied']);
 echo $ran === 0 ? "  Nothing to do — schema is current.\n" : "  {$ran} migration(s) applied.\n";

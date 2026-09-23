@@ -31,6 +31,7 @@ final class SettingsController extends AdminController
                 'SELECT id, name, scopes, last_used_at, created_at, is_active FROM api_tokens ORDER BY id DESC'
             ),
             'networkEnabled' => Config::bool('ads.network.enabled'),
+            'pendingMigrations' => \App\Support\Migrator::pending(),
             'contributions' => [
                 'enabled'           => \App\Support\Settings::bool('contributions.enabled', true),
                 'judge_can_publish' => \App\Support\Settings::bool('contributions.judge_can_publish', true),
@@ -78,6 +79,28 @@ final class SettingsController extends AdminController
         }
 
         return self::redirectWith('/admin/settings', $message);
+    }
+
+    /**
+     * Apply pending database migrations. An update that ships one (a new
+     * file in db/migrations/) needs this when the host has no Terminal.
+     */
+    public static function migrate(Request $request): Response
+    {
+        $guard = self::guard($request, true);
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $result = \App\Support\Migrator::applyPending();
+
+        AdminAuth::audit(AdminAuth::user($request)['id'] ?? null, 'migrate', null, null, $request, $result);
+
+        if ($result['failed'] !== null) {
+            return self::redirectWith('/admin/settings', "Migration {$result['failed']} failed: {$result['error']}", 'error');
+        }
+
+        return self::redirectWith('/admin/settings', count($result['applied']) . ' migration(s) applied.');
     }
 
     /** The two contribution switches, stored as runtime settings. */

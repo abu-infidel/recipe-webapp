@@ -12,10 +12,11 @@ Day-to-day operation, and what to do when something breaks.
                                you review and publish           PWA offline
 ```
 
-The site never makes an outbound connection. That is deliberate: the host
-needs no internet access, the API key never lives on shared hosting, and a
-page view never depends on a service that an international blackout would cut
-off.
+The site makes one kind of outbound connection only: sending a sign-in code
+to a domestic SMS gateway when a contributor signs in. Content pages never
+call out. That is deliberate: the API keys never live on shared hosting, and
+a page view never depends on a service that an international blackout would
+cut off.
 
 ## Publishing an article
 
@@ -37,14 +38,92 @@ reindexes it for search, updates the counters, and clears the affected cached
 pages. It also re-links older articles that mention the new topic, so the wiki
 gets denser on its own.
 
+## Writing an article yourself
+
+**Admin → Articles → New recipe / New guide** opens the composer: a form, not
+an HTML editor.
+
+- The body is blocks — paragraph, subheading, list, numbered list, tip,
+  note, warning, quotation, image — grouped into sections with headings.
+  A blank line inside a paragraph starts a new one; `**bold**` is the only
+  formatting.
+- Add references at the bottom and cite them in the text by number: `[1]`,
+  `[۲]`, or several as `[1، 3]`. Paste a sentence from the source into a
+  reference's *quote* box when the text states a figure: the citation check
+  then verifies the figure against it.
+- Images are uploaded as you choose them, re-encoded to WebP at phone-friendly
+  sizes, and stripped of metadata (a phone photo's GPS position included).
+  Tick *AI-generated* on a lead image that is; readers are told.
+- **Save draft** runs the same citation check as the pipeline's drafts and
+  shows the findings. Publish from **Review & publish**. Once published, the
+  section and address are fixed; editing and saving republishes at once.
+
+Articles from the research pipeline keep their own review screen; the
+composer is for articles written in it.
+
+## Contributions
+
+Readers can sign in at `/account` with an SMS code and send recipes and
+guides through the same composer. Each submission:
+
+1. is refused at once if it cites a reference that does not exist;
+2. is queued for the worker's **judge**, an LLM that reads it and leaves a
+   verdict (approve / revise / reject), a score, a food-safety check and a
+   list of issues;
+3. waits in **Admin → Submissions** (the menu shows how many).
+
+If **Settings → Contributions → the judge may publish** is on, a submission
+the judge approves with a score of 80 or more, confirmed food safety, no
+major issue and at least one reference is published without waiting for
+you, and marked *published by the judge* in the queue. Look through those
+now and then. The judge never rejects or returns anything: a false "no"
+would quietly turn away a real person, so only you do that.
+
+On a submission you can:
+
+- **Approve and publish**, or **Approve as draft** to polish it in the
+  composer first. The contributor's chosen display name becomes the byline.
+- **Return for changes** with a note in Persian. They see the note, edit,
+  and resend; it goes back through the judge.
+- **Reject**, optionally with a note.
+- **Suspend the contributor.** They are signed out everywhere and their open
+  submissions are closed. Reinstate from the same place.
+
+Stored about a contributor: an HMAC of their phone number (not the number),
+their display name, and counts of approved and rejected submissions. Nothing
+that could be used to contact them. If they lose access to the number, a new
+number is a new account.
+
+## Changing the design
+
+Everything readers see is a **theme** in `public_html/themes/`. The backend
+is not involved in how pages look, so a redesign cannot break it.
+
+- **Admin → Themes** lists installed themes with the result of the theme
+  check, previews any of them on real pages or sample data, and activates
+  one. Activation clears the page cache.
+- To install a new theme, upload its `.zip` there. It is unpacked outside
+  the web root and checked (no files the server would execute, nothing
+  loaded from another origin, the core head and scripts present on every
+  page) before anything is installed. It is never activated automatically.
+- To have a theme made by a language model, give it the site's address and
+  ask it to start from `/api/v1/schema` — or give it `docs/UI-CONTRACT.md`.
+  It needs nothing else.
+- Readers' browsers may keep pages from the previous theme for up to an hour.
+  Keep the old theme installed for a day before deleting it.
+- The built-in `default` theme cannot be deleted: it is what the site falls
+  back to if the active theme ever breaks.
+
 ## Routine checks
 
 | How often | What |
 |---|---|
 | When publishing | Validator findings on each draft |
+| A few times a week | Admin → Submissions, including those *published by the judge* |
 | Weekly | Dashboard: failed jobs, estimated spend |
 | Monthly | `php tools/preflight.php`; check JetBackup has recent backups |
-| After any template change | Flush the page cache from Admin → Settings |
+| After any template change | Flush the page cache from Admin → Settings (activating a theme does this for you) |
+| After each deploy | Admin → Settings: apply a database update if one is offered |
 
 ## Common situations
 
@@ -97,6 +176,21 @@ Boxes mean the font did not load — check `public_html/assets/fonts/`.
 Question marks mean the database is not `utf8mb4`; that has to be fixed at the
 database level and the content re-imported.
 
+### Contributors say codes do not arrive
+
+Look in cPanel → **Errors** for "SMS send failed" — the line says why
+(credit, template not approved, key wrong) without the key itself. If
+many people report it at once, check the gateway's own status page, and
+the site-wide hourly ceiling (`otp.global_per_hour`), which returns "busy"
+when reached.
+
+### A theme upload is refused
+
+The report lists every problem with the file and line. Common ones: a
+Google Fonts or CDN link (download the font into the theme instead), an
+`onclick=` attribute (move it into the theme's JS), a missing template, or
+`{{page.head}}` / `{{page.foot}}` left out of `layout.mustache`.
+
 ### Restoring after a bad publish
 
 Every publish snapshots the previous version into `article_versions`. There is
@@ -117,6 +211,13 @@ that directory periodically — cPanel → File Manager → Compress → Downloa
 
 ## Costs to watch
 
+- **SMS** — one message per sign-in. The limits under `otp` in
+  `app/config.php` cap it: one code per number per minute and five a day,
+  ten per network address per hour, 300 for the whole site per hour. If your
+  credit is small, lower `global_per_hour`.
+- **The judge** — one model call per submission and per resubmission.
+  `LLM_JUDGE_MODEL` in `worker/.env` can point it at a cheaper model.
+
 - **The VPS** — a fixed monthly amount.
 - **The model** — per article. The dashboard shows a running estimate.
   `DAILY_BUDGET_USD` in `worker/.env` caps it.
@@ -131,6 +232,7 @@ that directory periodically — cPanel → File Manager → Compress → Downloa
   `ALTER TABLE ... RENAME COLUMN` — they work locally and fail in production.
 - **No Composer, no npm on the host.** The site is plain PHP with a hand-written
   autoloader. Deployment is copying files.
-- **Nothing loads from another server.** That is checked by `preflight.php`.
+- **Nothing loads from another server.** That is checked by `preflight.php`
+  and, for themes, by the theme check.
   Adding a CDN link would break the site during a blackout, which is the one
   thing the whole design is built to survive.

@@ -18,12 +18,20 @@ international routes are cut, and one `<script src="https://…">` would break
 that. The CSP enforces it and `tools/preflight.php` checks for it.
 
 **No visitor cookies.** Public pages set none. The admin session cookie is
-scoped to `/admin`. There is no per-visitor row in the schema and there should
-never be one. Per-device conveniences go in `localStorage`, wrapped in
+scoped to `/admin`; the contributor session cookie is scoped to `/account` and
+set only after SMS sign-in. There is no per-visitor row in the schema and there
+should never be one. Per-device conveniences go in `localStorage`, wrapped in
 try/catch because it throws in private mode.
 
-**The site never makes an outbound request.** The worker pulls from it. Do not
-add an API call to a controller.
+**Contributors' phone numbers are never stored.** Only `PhoneNumber::hash()`, an
+HMAC under `security.phone_pepper`. Do not write a number to the database, a
+log, a URL or an error message. The Iranian mobile range is small enough that
+an unpeppered hash would be reversible.
+
+**The site makes one outbound request, and only one.** Sending a sign-in code
+to the configured domestic SMS gateway (`app/Support/Sms/`), on the `/account`
+sign-in path. Everything else is pulled by the worker. Do not add an API call
+to a controller, and never one on a content path.
 
 ## Persian text
 
@@ -47,6 +55,45 @@ Things that are easy to get wrong:
   text but must splice links onto the original characters. It replays the
   folding by hand; a test keeps it in agreement with `normalize()`.
 
+## Themes and the UI contract
+
+Public pages are rendered by a **theme** (`public/themes/<name>/`): logic-less
+Mustache templates plus CSS and JS, swappable from Admin → Themes without
+touching the backend. The rules that keep that safe:
+
+- A theme receives only what `app/Http/ViewModels.php` builds. Only a
+  `SafeHtml` value is ever output unescaped, and only core creates one.
+- `app/Http/UiContract.php` describes every key (served at `/api/v1/schema`).
+  **If you add, rename or retype a key in ViewModels, update UiContract** and
+  run `php tools/ui-contract-doc.php`; `UiContractTest` fails otherwise, by
+  validating real view models and the fixtures against the schema.
+- Core owns `{{page.head}}` (SEO, stylesheets) and `{{page.foot}}` (core
+  scripts, the scraper trap). The account area is core-rendered *inside* the
+  theme's layout (`Page::core`), because its forms carry proof-of-work and
+  CSRF hooks a redesign must not break.
+- A script hook attribute must name exactly one element. The article wrapper
+  once carried `data-toc` too, and `article.js` hid the whole article on
+  phones; `ThemeTest` now checks this.
+- `tools/theme-check.php` (also run on upload and by preflight) is the gate:
+  foreign origins, inline scripts, executable file types, core tags that do
+  not render.
+
+## Filesystem paths
+
+The repository's web root is `public/`; cPanel's is `public_html/`. Always go
+through `App\Core\Paths` (`public()`, `pages()`, `media()`, `themes()`). A
+hard-coded `public/` works locally and silently fails in production.
+
+## Articles written by people
+
+The owner's editor and the contributor form produce an `ArticleComposer`
+document (`composer/1`, stored in `body_json`), never HTML. `ArticleComposer`
+is the only thing that turns one into HTML, from escaped text and a fixed set
+of tags. Do not add a path that accepts HTML from a contributor.
+
+Uploaded images go through `MediaStore`: type from the bytes, dimensions
+checked before decoding, re-encoded (which strips EXIF and GPS).
+
 ## Where the work happens
 
 Everything expensive happens at **publish time**, never per request:
@@ -67,13 +114,28 @@ An article's references are checked mechanically, not trusted:
 - It runs in the worker (so a repair round can happen) **and** on the server
   against its own `sources` table. Do not remove the server-side check — a
   check the worker could skip is not a guarantee.
+- The two copies (`app/Domain/CitationValidator.php`,
+  `worker/src/pipeline/validate.js`) run against one fixture,
+  `tools/tests/fixtures/citations.json`. **Change both**, like the Persian
+  text functions.
+- Figures match as whole numbers, and the °C/°F tolerance applies only to
+  values that can be cooking temperatures. Substring matching once let "35"
+  be "supported" by any source containing "1".
+- Contributor submissions citing a reference that does not exist are refused
+  outright. The worker's judge may publish only a confident, clean approval
+  (see `Submissions::autoPublishBlocker`); it can never reject.
 
 ## Testing
 
 ```bash
 php tools/tests/run.php        # no dependencies; add to tools/tests/*Test.php
-node tools/tests/run-js.js     # PHP/JS parity
+node tools/tests/run-js.js     # PHP/JS parity: Persian text, citation check
+php tools/theme-check.php      # the live theme against the UI contract
+php tools/preflight.php        # what the host needs, including the above
 ```
+
+Database-backed tests skip themselves when there is no database, and remove
+every row they create.
 
 Verify visually with Playwright against the dev server rather than assuming
 markup is right. Several real bugs in this codebase — the `hidden` attribute
@@ -85,6 +147,11 @@ mismatch between PHP and MariaDB — were only visible in a rendered page.
 - Views are plain PHP. Escape every dynamic value with `e()`. Persian inline
   in the English admin needs `<bdi>` or the bidi algorithm reorders the
   English around it.
+- Messages a contributor sees are Persian; messages the owner sees are
+  English. `ArticleComposer::normalize($input, 'fa')` gives Persian errors.
+- Runtime switches the owner can flip live in `settings` via
+  `App\Support\Settings` (a stored value overrides config). Add a key to
+  `Settings::KEYS` before storing it.
 - RTL uses logical properties (`inset-inline-start`, `margin-block`), never
   `left`/`right`.
 - The public site is Persian and RTL. The admin is English and LTR. They have

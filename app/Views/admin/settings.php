@@ -6,12 +6,26 @@
  * @var bool   $networkEnabled
  * @var int    $cacheFiles
  * @var array  $contributions
+ * @var list<string> $pendingMigrations
  * @var string $csrf
  */
 ?>
 <div class="admin-head">
   <h1>Settings</h1>
 </div>
+
+<?php if ($pendingMigrations !== []): ?>
+  <div class="card" role="alert">
+    <p class="card__title">Database update needed</p>
+    <p>This version of the site needs <?= count($pendingMigrations) ?> database change(s):
+      <?php foreach ($pendingMigrations as $file): ?><code><?= e($file) ?></code> <?php endforeach; ?></p>
+    <p class="hint">Migrations only add tables and columns; nothing is deleted. A backup first (cPanel → Backup) is still wise.</p>
+    <form method="post" action="/admin/settings/migrate" data-confirm="Apply the database changes now?">
+      <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+      <button class="btn btn--primary" type="submit">Apply</button>
+    </form>
+  </div>
+<?php endif; ?>
 
 <div class="card">
   <p class="card__title">Contributions</p>

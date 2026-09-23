@@ -152,6 +152,7 @@ $router->get('/admin/themes/{name}/preview', \App\Http\Controllers\Admin\ThemeCo
 
 $router->get('/admin/settings', \App\Http\Controllers\Admin\SettingsController::index(...));
 $router->post('/admin/settings/ad-slot/{id}', \App\Http\Controllers\Admin\SettingsController::updateAdSlot(...));
+$router->post('/admin/settings/migrate', \App\Http\Controllers\Admin\SettingsController::migrate(...));
 $router->post('/admin/settings/contributions', \App\Http\Controllers\Admin\SettingsController::updateContributions(...));
 $router->post('/admin/settings/flush-cache', \App\Http\Controllers\Admin\SettingsController::flushCache(...));
 $router->post('/admin/settings/unblock', \App\Http\Controllers\Admin\SettingsController::unblock(...));
