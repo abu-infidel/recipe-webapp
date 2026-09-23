@@ -106,6 +106,13 @@ $router->get('/admin', \App\Http\Controllers\Admin\DashboardController::index(..
 
 $router->get('/admin/articles', \App\Http\Controllers\Admin\ArticleController::index(...));
 $router->post('/admin/articles/commission', \App\Http\Controllers\Admin\ArticleController::commission(...));
+// The composer: articles written in a structured form. /new must come
+// before /{id} so it is not read as an article id.
+$router->get('/admin/articles/new', \App\Http\Controllers\Admin\ComposeController::create(...));
+$router->post('/admin/articles/new', \App\Http\Controllers\Admin\ComposeController::save(...));
+$router->get('/admin/articles/{id}/edit', \App\Http\Controllers\Admin\ComposeController::edit(...));
+$router->post('/admin/articles/{id}/edit', \App\Http\Controllers\Admin\ComposeController::save(...));
+$router->post('/admin/media', \App\Http\Controllers\Admin\ComposeController::upload(...));
 $router->get('/admin/articles/{id}', \App\Http\Controllers\Admin\ArticleController::review(...));
 $router->post('/admin/articles/{id}/save', \App\Http\Controllers\Admin\ArticleController::save(...));
 $router->post('/admin/articles/{id}/publish', \App\Http\Controllers\Admin\ArticleController::publish(...));

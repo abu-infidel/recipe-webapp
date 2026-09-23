@@ -37,6 +37,9 @@ $warnings = array_filter($flags, static fn($f) => ($f['severity'] ?? '') === 'wa
   </div>
 
   <div style="display:flex; gap:8px; flex-wrap:wrap">
+    <?php if (\App\Domain\ArticleComposer::isComposerDocument($article['body_json'] ?? null)): ?>
+      <a class="btn" href="/admin/articles/<?= (int) $article['id'] ?>/edit">Edit in composer</a>
+    <?php endif; ?>
     <?php if ($article['status'] === 'published' && $publicUrl !== null): ?>
       <a class="btn" href="<?= e($publicUrl) ?>" target="_blank" rel="noopener">View live ↗</a>
       <form method="post" action="/admin/articles/<?= (int) $article['id'] ?>/unpublish"

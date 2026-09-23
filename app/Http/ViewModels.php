@@ -507,24 +507,26 @@ final class ViewModels
     }
 
     /**
-     * Width variants written by MediaStore alongside the original
-     * (name-480.webp, name-960.webp …). Empty when none exist.
+     * Width variants written by MediaStore alongside the main file
+     * (name-480.webp, name-960.webp, name-1600.webp, or the original width
+     * when smaller). Empty when there is only one size.
      */
     private static function srcset(string $path): string
     {
         $info = pathinfo($path);
-        $base = ($info['dirname'] !== '.' ? $info['dirname'] . '/' : '') . preg_replace('/-\d+$/', '', $info['filename']);
+        $dir = $info['dirname'] !== '.' ? $info['dirname'] . '/' : '';
+        $base = (string) preg_replace('/-\d+$/', '', $info['filename']);
         $ext = $info['extension'] ?? 'webp';
         $parts = [];
 
-        foreach ([480, 960, 1600] as $width) {
-            $candidate = $base . '-' . $width . '.' . $ext;
-            if (is_file(\App\Core\Paths::media() . '/' . $candidate)) {
-                $parts[] = '/media/' . $candidate . ' ' . $width . 'w';
+        foreach (glob(\App\Core\Paths::media() . '/' . $dir . $base . '-*.' . $ext) ?: [] as $file) {
+            if (preg_match('/-(\d+)\.' . preg_quote($ext, '/') . '$/', $file, $m) === 1) {
+                $parts[(int) $m[1]] = '/media/' . $dir . basename($file) . ' ' . $m[1] . 'w';
             }
         }
+        ksort($parts);
 
-        return implode(', ', $parts);
+        return count($parts) > 1 ? implode(', ', $parts) : '';
     }
 
     /**

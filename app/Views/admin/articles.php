@@ -13,6 +13,8 @@ $filters = ['all' => 'All', 'draft' => 'Draft', 'in_review' => 'In review', 'pub
 <div class="admin-head">
   <h1>Articles</h1>
   <div style="display:flex; gap:6px; flex-wrap:wrap">
+    <a class="btn btn--sm btn--primary" href="/admin/articles/new?kind=recipe">New recipe</a>
+    <a class="btn btn--sm btn--primary" href="/admin/articles/new?kind=guide">New guide</a>
     <?php foreach ($filters as $key => $label): ?>
       <a class="btn btn--sm" href="/admin/articles?status=<?= e($key) ?>"
          <?= $status === $key ? 'style="border-color:var(--a-accent); color:var(--a-accent)"' : '' ?>>
