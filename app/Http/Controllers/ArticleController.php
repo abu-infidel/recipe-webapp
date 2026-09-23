@@ -54,12 +54,12 @@ final class ArticleController
             'showToc'     => count($toc) >= Config::int('content.toc_min_headings', 3),
             'jsonLd'      => self::structuredData($article, $field, $recipe),
             'scripts'     => ['/assets/js/article.js'],
+            'articleId'   => $articleId,
         ]);
 
-        // Aggregate counter only. There is no per-visitor record anywhere,
-        // which is what lets the site run with no cookies at all.
-        ArticleRepository::recordView($articleId);
-
+        // Views are counted by a beacon from the browser (BeaconController),
+        // not here: this code runs only on a cache miss, so counting here
+        // would count cache misses, and it would be a write on every GET.
         return Response::html($html)->cacheFor(1800);
     }
 

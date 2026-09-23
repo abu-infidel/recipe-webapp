@@ -18,6 +18,18 @@ RewriteEngine On
 # RewriteCond %{HTTPS} !=on
 # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
+# --- one canonical host --------------------------------------------------
+# www.example.ir and example.ir would otherwise be two sites to a search
+# engine, splitting ranking signals, and www would never hit the page cache
+# because the cache is keyed by hostname. Generic: no domain is hard-coded.
+# No NE flag on purpose: REQUEST_URI arrives decoded, and letting Apache
+# re-encode it produces a correct ASCII Location header for Persian paths.
+RewriteCond %{HTTPS} =on
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ http://%1%{REQUEST_URI} [R=301,L]
+
 # --- static page cache ---------------------------------------------------
 # GET requests with no query string are served straight from the generated
 # file when one exists. Publishing clears the affected entries.
@@ -62,6 +74,13 @@ Header always set X-Frame-Options "DENY"
 Header unset X-Powered-By
 </IfModule>
 ServerSignature Off
+
+# If a manual upload ever puts source directories under the web root, they
+# must still be unreachable. tools/ in particular would otherwise expose the
+# migrator and the admin-account creator.
+<IfModule mod_alias.c>
+RedirectMatch 404 ^/(app|db|tools|worker|docs|node_modules|vendor)(/|$)
+</IfModule>
 
 # Never serve dotfiles, config, or anything from the app directory.
 <FilesMatch "^\.|(\.(ini|log|sql|md|json|lock|yml|yaml|sh|bak)|composer\.(json|lock))$">

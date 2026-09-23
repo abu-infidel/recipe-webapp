@@ -52,7 +52,7 @@
         </details>
 
         <form method="post" action="/admin/fields/<?= (int) $node['id'] ?>/delete"
-              onsubmit="return confirm('Delete this field? Refused if it still holds articles.')">
+              data-confirm="Delete this field? This is refused if it still holds articles.">
           <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
           <button class="btn btn--sm btn--danger" type="submit">Delete</button>
         </form>

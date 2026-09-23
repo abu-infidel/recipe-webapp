@@ -39,17 +39,16 @@ $warnings = array_filter($flags, static fn($f) => ($f['severity'] ?? '') === 'wa
   <div style="display:flex; gap:8px; flex-wrap:wrap">
     <?php if ($article['status'] === 'published' && $publicUrl !== null): ?>
       <a class="btn" href="<?= e($publicUrl) ?>" target="_blank" rel="noopener">View live ↗</a>
-      <form method="post" action="/admin/articles/<?= (int) $article['id'] ?>/unpublish">
+      <form method="post" action="/admin/articles/<?= (int) $article['id'] ?>/unpublish"
+            data-confirm="Take this article off the public site?">
         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
         <button class="btn btn--danger" type="submit">Unpublish</button>
       </form>
     <?php else: ?>
-      <form method="post" action="/admin/articles/<?= (int) $article['id'] ?>/publish">
+      <form method="post" action="/admin/articles/<?= (int) $article['id'] ?>/publish"
+            <?= $errors !== [] ? 'data-confirm="This draft has unresolved citation errors. Publish anyway?"' : '' ?>>
         <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
-        <button class="btn btn--primary" type="submit"
-          <?= $errors !== [] ? 'onclick="return confirm(\'This draft has unresolved citation errors. Publish anyway?\')"' : '' ?>>
-          Publish
-        </button>
+        <button class="btn btn--primary" type="submit">Publish</button>
       </form>
     <?php endif; ?>
   </div>
@@ -99,7 +98,10 @@ $warnings = array_filter($flags, static fn($f) => ($f['severity'] ?? '') === 'wa
             <?= e($article['summary_fa']) ?>
           </p>
         <?php endif; ?>
-        <?= $article['body_html'] ?>
+        <?php /* Sanitised again for display, whatever is stored. This screen
+                 runs with the admin session, so it is the last place an
+                 unsanitised draft should ever be rendered raw. */ ?>
+        <?= \App\Support\HtmlSanitizer::clean((string) $article['body_html']) ?>
       </div>
     </div>
 
@@ -164,7 +166,11 @@ $warnings = array_filter($flags, static fn($f) => ($f['severity'] ?? '') === 'wa
         </div>
 
         <div class="source__meta">
-          <a href="<?= e($source['url']) ?>" target="_blank" rel="noopener noreferrer"><?= e($source['domain']) ?></a>
+          <?php if (\App\Support\UrlGuard::isHttpUrl($source['url'])): ?>
+            <a href="<?= e($source['url']) ?>" target="_blank" rel="noopener noreferrer"><?= e($source['domain']) ?></a>
+          <?php else: ?>
+            <?= e($source['domain']) ?>
+          <?php endif; ?>
           <?php if (!empty($source['author'])): ?> · <?= e($source['author']) ?><?php endif; ?>
           <?php if (!empty($source['published_date'])): ?> · <?= e((string) $source['published_date']) ?><?php endif; ?>
           · fetched <?= e(date('Y-m-d', (int) strtotime((string) $source['fetched_at']))) ?>

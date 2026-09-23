@@ -21,6 +21,7 @@ final class AuthController extends AdminController
         $html = View::page('admin.login', 'admin.layout_bare', [
             'error'     => $request->query('e'),
             'pageTitle' => 'Sign in',
+            'csrf'      => AdminAuth::loginToken(),
         ]);
 
         return Response::html($html)->noCache();
@@ -34,6 +35,10 @@ final class AuthController extends AdminController
         if (!$limit['allowed']) {
             return Response::text('Too many attempts. Wait a minute.', 429)
                 ->withHeader('Retry-After', (string) max(1, $limit['retry_after']));
+        }
+
+        if (!AdminAuth::checkLoginToken($request)) {
+            return Response::redirect('/admin/login?e=' . rawurlencode('Your session expired. Please try again.'));
         }
 
         $result = AdminAuth::attempt(

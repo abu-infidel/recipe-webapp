@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// Command-line only. If this file is ever reachable over HTTP (a manual
+// upload under public_html), it must do nothing at all.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 /**
  * Create the first admin account.
  *

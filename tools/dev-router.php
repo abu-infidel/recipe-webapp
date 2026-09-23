@@ -1,4 +1,8 @@
 <?php
+if (PHP_SAPI !== 'cli-server') {
+    http_response_code(404);
+    exit;
+}
 /**
  * Router for PHP's built-in server, which has no .htaccess.
  *
@@ -10,7 +14,7 @@
  */
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
-$file = __DIR__ . '/../public' . rawurldecode($path);
+$file = __DIR__ . '/../public' . rawurldecode($path);   // the repository layout, dev only
 
 if ($path !== '/' && is_file($file)) {
     return false;

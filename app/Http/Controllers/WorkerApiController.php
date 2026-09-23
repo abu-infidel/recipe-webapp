@@ -11,8 +11,10 @@ use App\Domain\ArticleRepository;
 use App\Domain\CitationValidator;
 use App\Domain\FieldRepository;
 use App\Domain\JobQueue;
+use App\Support\HtmlSanitizer;
 use App\Support\PersianText;
 use App\Support\Slug;
+use App\Support\UrlGuard;
 use App\Support\WorkerAuth;
 
 /**
@@ -163,7 +165,7 @@ final class WorkerApiController
 
         foreach ((array) ($result['sources'] ?? []) as $source) {
             $url = trim((string) ($source['url'] ?? ''));
-            if ($url === '' || !preg_match('#^https?://#i', $url)) {
+            if (!UrlGuard::isHttpUrl($url)) {
                 continue;
             }
 
@@ -236,7 +238,12 @@ final class WorkerApiController
             ) !== null
         );
 
-        $bodyHtml = (string) ($result['body_html'] ?? '');
+        // Sanitised on the way in, not just at publish. The draft is rendered
+        // in the admin review screen long before anyone publishes it, and
+        // that screen runs with the admin session. A compromised or buggy
+        // worker must not be able to put script in front of the one person
+        // with the keys.
+        $bodyHtml = HtmlSanitizer::clean((string) ($result['body_html'] ?? ''));
 
         $articleId = Database::insert('articles', [
             'field_id'        => $fieldId,

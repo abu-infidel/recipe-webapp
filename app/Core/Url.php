@@ -53,7 +53,7 @@ final class Url
     public static function asset(string $path): string
     {
         $path = '/' . ltrim($path, '/');
-        $file = dirname(__DIR__, 2) . '/public' . $path;
+        $file = Paths::public() . $path;
 
         if (is_file($file)) {
             $path .= '?v=' . substr((string) filemtime($file), -6);

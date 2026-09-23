@@ -59,7 +59,7 @@ $title = isset($pageTitle) && $pageTitle !== '' ? $pageTitle . ' — ' . $siteNa
 <script type="application/ld+json"><?= ejs($jsonLd) ?></script>
 <?php endif; ?>
 </head>
-<body class="<?= e($bodyClass ?? '') ?>"<?= !empty($accent) ? ' style="--accent: ' . e($accent) . '"' : '' ?>>
+<body class="<?= e($bodyClass ?? '') ?>"<?= !empty($accent) ? ' style="--accent: ' . e($accent) . '"' : '' ?><?= !empty($articleId) ? ' data-article-id="' . (int) $articleId . '"' : '' ?>>
 
 <a class="skip-link" href="#main">پرش به محتوای اصلی</a>
 

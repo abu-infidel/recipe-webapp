@@ -162,7 +162,7 @@ final class Publisher
             'SELECT a.id FROM articles a
              WHERE a.status = :published AND a.id != :self AND (' . implode(' OR ', $conditions) . ')
              ORDER BY a.published_at DESC
-             LIMIT ' . $limit,
+             LIMIT ' . max(1, min(100, $limit)),
             $params
         );
 
@@ -202,7 +202,7 @@ final class Publisher
      */
     public static function regenerateTree(): bool
     {
-        $file = dirname(__DIR__, 2) . '/public/cache/tree.json';
+        $file = \App\Core\Paths::cache() . '/tree.json';
         $payload = json_encode(
             ['generated' => gmdate('c'), 'fields' => FieldRepository::tree()],
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES

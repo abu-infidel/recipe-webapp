@@ -42,7 +42,7 @@ final class ArticleRepository
             'SELECT ' . self::LIST_COLUMNS . " FROM articles
              WHERE field_id = :field AND status = 'published'
              ORDER BY published_at DESC, id DESC
-             LIMIT {$limit} OFFSET {$offset}",
+             LIMIT " . self::bound($limit) . ' OFFSET ' . max(0, min(100000, $offset)),
             ['field' => $fieldId]
         );
     }
@@ -62,7 +62,7 @@ final class ArticleRepository
              WHERE a.status = :published
                AND (f.path = :exact OR f.path LIKE :prefix)
              ORDER BY a.published_at DESC, a.id DESC
-             LIMIT ' . $limit,
+             LIMIT ' . self::bound($limit),
             ['published' => 'published', 'exact' => $prefix, 'prefix' => self::escapeLike($prefix) . '/%']
         );
     }
@@ -75,7 +75,7 @@ final class ArticleRepository
              INNER JOIN fields f ON f.id = a.field_id
              WHERE a.status = :published
              ORDER BY a.published_at DESC, a.id DESC
-             LIMIT ' . $limit,
+             LIMIT ' . self::bound($limit),
             ['published' => 'published']
         );
     }
@@ -114,7 +114,7 @@ final class ArticleRepository
              INNER JOIN fields f ON f.id = a.field_id
              WHERE l.from_article_id = :article AND a.status = :published
              ORDER BY l.weight DESC, a.title_fa ASC
-             LIMIT ' . $limit,
+             LIMIT ' . self::bound($limit, 50),
             ['article' => $articleId, 'published' => 'published']
         );
 
@@ -133,7 +133,7 @@ final class ArticleRepository
              WHERE a.field_id = :field AND a.status = :published
                AND a.id NOT IN (' . $placeholders . ')
              ORDER BY a.published_at DESC
-             LIMIT ' . ($limit - count($linked)),
+             LIMIT ' . self::bound($limit - count($linked), 50),
             ['field' => $fieldId, 'published' => 'published', ...$params]
         );
 
@@ -169,17 +169,12 @@ final class ArticleRepository
     }
 
     /**
-     * Bump the aggregate view counter.
-     *
-     * A single counter on the row — there is no per-visitor record anywhere,
-     * which is what lets the site run with no cookies and no consent banner.
+     * Bound a LIMIT. The parameters are int-typed under strict_types, so this
+     * is not about injection — it stops any caller asking for a million rows.
      */
-    public static function recordView(int $articleId): void
+    private static function bound(int $value, int $max = 200): int
     {
-        Database::run(
-            'UPDATE articles SET view_count = view_count + 1 WHERE id = :id',
-            ['id' => $articleId]
-        );
+        return max(1, min($max, $value));
     }
 
     /** Escape LIKE wildcards in user- or slug-derived input. */

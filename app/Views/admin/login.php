@@ -1,4 +1,9 @@
-<?php /** @var string|null $error */ ?>
+<?php
+/**
+ * @var string|null $error
+ * @var string      $csrf
+ */
+?>
 <div class="login-card">
   <h1>Sign in</h1>
   <p>Admin panel</p>
@@ -8,6 +13,7 @@
   <?php endif; ?>
 
   <form method="post" action="/admin/login">
+    <input type="hidden" name="_csrf" value="<?= e($csrf ?? '') ?>">
     <div class="field">
       <label for="email">Email</label>
       <input type="email" id="email" name="email" required autocomplete="username" autofocus>

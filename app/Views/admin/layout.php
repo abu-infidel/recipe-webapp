@@ -74,6 +74,7 @@ $links = [
   </main>
 </div>
 
+<script src="<?= e(asset('/assets/js/admin-common.js')) ?>" defer></script>
 <?php foreach (($scripts ?? []) as $script): ?>
 <script src="<?= e(asset($script)) ?>" defer></script>
 <?php endforeach; ?>

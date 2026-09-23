@@ -21,6 +21,12 @@ return [
         'timezone'   => 'Asia/Tehran',
     ],
 
+    'paths' => [
+        // The web root. Leave empty to detect it: public_html beside app/ on
+        // cPanel, public/ in the repository. Set it only for an unusual layout.
+        'public' => '',
+    ],
+
     'routing' => [
         // 'path'      -> /f/cooking/stews          (launch mode)
         // 'subdomain' -> cooking.example.ir/stews  (flip when subdomains exist)
@@ -50,7 +56,9 @@ return [
         // Static HTML cache. A hit never starts PHP — .htaccess serves the
         // file directly. This is what lets shared hosting carry real traffic.
         'enabled' => true,
-        'dir'     => __DIR__ . '/../public/cache/pages',
+        // Empty means "work it out": public_html/cache/pages on cPanel,
+        // public/cache/pages in the repository. See App\Core\Paths.
+        'dir'     => '',
         'ttl'     => 86400 * 7,
     ],
 
@@ -103,6 +111,9 @@ return [
             'search'  => ['limit' => 20,  'window' => 60],
             'asset'   => ['limit' => 300, 'window' => 60],
             'api'     => ['limit' => 30,  'window' => 60],
+            // Anonymous counters. Separate from 'api' so a reader's own view
+            // beacons can never use up the budget the search box needs.
+            'beacon'  => ['limit' => 120, 'window' => 60],
             // Article-page requests per IP per day. Exceeding it triggers
             // the proof-of-work challenge, never an outright block: Iranian
             // mobile carriers use CGNAT, so one address can legitimately

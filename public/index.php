@@ -32,9 +32,12 @@ $request = Request::capture();
 // than a rendered page. Manifest paths (/llms.txt and friends) are never
 // gated: assistants should learn what the site covers cheaply, and it is
 // bulk crawling the host cannot absorb, not being described.
-if (!str_starts_with($request->path, '/admin')
-    && $request->path !== '/api/verify'
-    && !ChallengeController::hasPass($request->ip)) {
+//
+// A solved challenge is only looked up when the gate would otherwise
+// challenge, so the ordinary request pays nothing for it. A pass never lifts
+// a block: something that hit the honeypot stays blocked however much work
+// it is willing to do.
+if (!str_starts_with($request->path, '/admin') && $request->path !== '/api/verify') {
     $gate = \App\Support\BotGate::inspect($request);
 
     if ($gate['verdict'] === \App\Support\BotGate::BLOCK) {
@@ -45,7 +48,7 @@ if (!str_starts_with($request->path, '/admin')
         exit;
     }
 
-    if ($gate['verdict'] === \App\Support\BotGate::CHALLENGE) {
+    if ($gate['verdict'] === \App\Support\BotGate::CHALLENGE && !ChallengeController::hasPass($request->ip)) {
         ChallengeController::show($request, $gate['reason'], $gate['retry_after'])->send();
         exit;
     }
@@ -59,6 +62,8 @@ $router->get('/search', SearchController::index(...));
 $router->get('/api/tree.json', HomeController::tree(...));
 $router->get('/api/search.json', SearchController::json(...));
 $router->post('/api/verify', ChallengeController::verify(...));
+$router->post('/api/beacon', \App\Http\Controllers\BeaconController::record(...));
+$router->get('/api/ad/{id}/go', \App\Http\Controllers\BeaconController::adClick(...));
 
 // The honeypot is hidden from readers and from screen readers, so only
 // something following every href in the markup ever reaches it.

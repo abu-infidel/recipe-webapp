@@ -88,8 +88,9 @@ final class WorkerAuth
     /**
      * Record a nonce, refusing one already seen.
      *
-     * Relies on the unique key rather than a read-then-write, so two requests
-     * racing cannot both win.
+     * Ephemeral::add is a single atomic statement, so two requests racing with
+     * the same nonce cannot both win. Nonces only need to be remembered for as
+     * long as a timestamp would still be accepted.
      */
     private static function consumeNonce(string $nonce, int $timestamp, int $skew): bool
     {
@@ -97,26 +98,7 @@ final class WorkerAuth
             return false;
         }
 
-        try {
-            Database::run(
-                'INSERT INTO settings (name, value) VALUES (:name, :value)',
-                ['name' => 'nonce:' . $nonce, 'value' => (string) $timestamp]
-            );
-        } catch (\Throwable $e) {
-            return false;   // duplicate key: already used
-        }
-
-        // Opportunistic cleanup; nonces are only meaningful inside the skew.
-        if (random_int(1, 50) === 1) {
-            Database::run(
-                "DELETE FROM settings
-                 WHERE name LIKE 'nonce:%' AND updated_at < DATE_SUB(NOW(), INTERVAL :seconds SECOND)
-                 LIMIT 500",
-                ['seconds' => $skew * 2]
-            );
-        }
-
-        return true;
+        return Ephemeral::add('wnonce:' . $nonce, (string) $timestamp, $skew * 2);
     }
 
     private static function bearerToken(Request $request): ?string

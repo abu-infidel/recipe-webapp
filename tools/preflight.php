@@ -1,6 +1,13 @@
 <?php
 declare(strict_types=1);
 
+// Command-line only. If this file is ever reachable over HTTP (a manual
+// upload under public_html), it must do nothing at all.
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit;
+}
+
 /**
  * Checks this server can actually run the site.
  *
@@ -15,6 +22,7 @@ require __DIR__ . '/../app/bootstrap.php';
 
 use App\Core\Config;
 use App\Core\Database;
+use App\Core\Paths;
 
 $checks = [];
 $failed = 0;
@@ -118,33 +126,53 @@ try {
 
 // --- filesystem ------------------------------------------------------------
 
+check('web root located', is_dir(Paths::public()), Paths::public());
+
 foreach ([
-    'public/cache/pages' => 'the static page cache',
-    'public/media'       => 'uploaded and generated images',
-] as $path => $purpose) {
-    $full = __DIR__ . '/../' . $path;
-    check("{$path} is writable", is_dir($full) && is_writable($full), $purpose);
+    Paths::pages() => 'the static page cache',
+    Paths::media() => 'uploaded and generated images',
+] as $full => $purpose) {
+    check('writable: ' . basename(dirname($full)) . '/' . basename($full), is_dir($full) && is_writable($full), $purpose);
 }
 
+// Application code under the web root would be one misconfiguration away
+// from serving config.local.php as plain text.
 check(
     'app/ is outside the web root',
-    !is_file(__DIR__ . '/../public/config.php'),
-    'application code must never be reachable over HTTP',
-    false
+    !is_dir(Paths::public() . '/app') && !is_file(Paths::public() . '/config.local.php'),
+    'application code must never be reachable over HTTP'
+);
+
+check(
+    'tools/ is outside the web root',
+    !is_dir(Paths::public() . '/tools'),
+    'the migrator and account creator must not be web-reachable'
 );
 
 // --- self-containment ------------------------------------------------------
 // The site must load nothing from a foreign origin, or a blackout that cuts
 // international routes would break pages that are otherwise fine.
 
-$fonts = glob(__DIR__ . '/../public/assets/fonts/*.woff2') ?: [];
+$fonts = glob(Paths::public() . '/assets/fonts/*.woff2') ?: [];
 check('Persian webfont is self-hosted', count($fonts) >= 1, count($fonts) . ' file(s)');
 
+// Scan every template, recursively. glob() has no ** operator: the earlier
+// version silently checked only one directory level.
 $external = [];
-foreach ((glob(__DIR__ . '/../app/Views/**/*.php') ?: []) as $view) {
-    $contents = (string) file_get_contents($view);
-    if (preg_match('#(src|href)=["\']https?://#i', $contents, $match)) {
-        $external[] = basename($view);
+foreach ([Paths::root() . '/app/Views', Paths::themes()] as $dir) {
+    if (!is_dir($dir)) {
+        continue;
+    }
+    $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS));
+    foreach ($files as $file) {
+        /** @var \SplFileInfo $file */
+        if (!preg_match('/\.(php|mustache|html|css|js)$/', $file->getFilename())) {
+            continue;
+        }
+        $contents = (string) file_get_contents($file->getPathname());
+        if (preg_match('#(src|href)\s*=\s*["\']https?://|url\(\s*["\']?https?://|@import\s+["\']?https?://#i', $contents)) {
+            $external[] = str_replace(Paths::root() . '/', '', $file->getPathname());
+        }
     }
 }
 check(

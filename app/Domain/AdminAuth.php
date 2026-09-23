@@ -21,6 +21,16 @@ final class AdminAuth
 {
     public const COOKIE = 'admin_session';
 
+    /** Set before sign-in so the login form itself can carry a CSRF token. */
+    public const PRE_COOKIE = 'admin_pre';
+
+    /**
+     * A real Argon2id hash of a random throwaway string, verified against when
+     * the email is unknown. Not a secret — its only job is to cost the same
+     * time as a real verification.
+     */
+    private const DUMMY_HASH = '$argon2id$v=19$m=65536,t=4,p=1$T0RabTF3SmlqQi90dUp3eA$GjIalaJnfK22zqZ+KPkNeNUHmNNGrrEnDFXnJY3msX0';
+
     private static ?array $user = null;
 
     /**
@@ -35,9 +45,12 @@ final class AdminAuth
             ['email' => $email]
         );
 
-        // Hash even when the account does not exist, so response time does not
-        // reveal which emails are registered.
-        $hash = $user['password_hash'] ?? '$argon2id$v=19$m=65536,t=4,p=1$aaaaaaaaaaaaaaaa$aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        // Verify even when the account does not exist, so response time does
+        // not reveal which emails are registered. The dummy must be a real,
+        // well-formed hash: a malformed one makes password_verify return
+        // instantly, and the difference (about 175 ms against zero) is easy to
+        // measure over a network.
+        $hash = $user['password_hash'] ?? self::DUMMY_HASH;
         $valid = password_verify($password, $hash);
 
         if ($user === null) {
@@ -140,6 +153,47 @@ final class AdminAuth
     public static function destroySession(string $cookieValue): void
     {
         Database::delete('admin_sessions', 'id = :id', ['id' => hash('sha256', $cookieValue)]);
+    }
+
+    /**
+     * Login CSRF protection.
+     *
+     * Without it, another site could submit the login form with the attacker's
+     * own credentials and quietly sign the owner into the attacker's account.
+     * There is no session yet at that point, so the token is bound to a short-
+     * lived pre-session cookie instead. SameSite=Strict means a cross-site
+     * form post never carries that cookie, so the check cannot be satisfied
+     * from elsewhere.
+     */
+    public static function loginToken(): string
+    {
+        $pre = $_COOKIE[self::PRE_COOKIE] ?? '';
+
+        if (!is_string($pre) || !preg_match('/^[0-9a-f]{64}$/', $pre)) {
+            $pre = bin2hex(random_bytes(32));
+            setcookie(self::PRE_COOKIE, $pre, [
+                'expires'  => time() + 1800,
+                'path'     => '/admin',
+                'secure'   => Config::string('site.scheme') === 'https',
+                'httponly' => true,
+                'samesite' => 'Strict',
+            ]);
+            $_COOKIE[self::PRE_COOKIE] = $pre;
+        }
+
+        return hash_hmac('sha256', 'login|' . $pre, Config::string('security.app_key'));
+    }
+
+    public static function checkLoginToken(Request $request): bool
+    {
+        $pre = $_COOKIE[self::PRE_COOKIE] ?? '';
+        $submitted = (string) ($request->input('_csrf') ?? '');
+
+        if (!is_string($pre) || !preg_match('/^[0-9a-f]{64}$/', $pre) || $submitted === '') {
+            return false;
+        }
+
+        return hash_equals(hash_hmac('sha256', 'login|' . $pre, Config::string('security.app_key')), $submitted);
     }
 
     /** A CSRF token bound to the session, so it cannot be reused elsewhere. */

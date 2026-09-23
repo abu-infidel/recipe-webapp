@@ -103,7 +103,7 @@ final class SettingsController extends AdminController
 
     private static function countCachedPages(): int
     {
-        $root = Config::string('cache.dir');
+        $root = \App\Core\Paths::pages();
         if (!is_dir($root)) {
             return 0;
         }

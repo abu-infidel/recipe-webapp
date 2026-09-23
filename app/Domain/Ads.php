@@ -5,42 +5,43 @@ namespace App\Domain;
 
 use App\Core\Config;
 use App\Core\Database;
+use App\Support\UrlGuard;
 
 /**
  * Ad slots.
  *
- * Three providers, switchable per slot from the admin panel with no code
- * change:
+ * Three providers, switchable per slot from the admin panel:
  *
  *   none    — renders nothing and collapses, leaving no gap
- *   house   — a creative from this site's own database, server-rendered,
- *             no JavaScript, no cookies, targeted by topic only
+ *   house   — creatives from this site's own database, no third-party script,
+ *             no cookies, targeted by topic only
  *   network — a third-party script
  *
- * 'house' is the default. Turning a slot to 'network' loads foreign
- * JavaScript that sets tracking cookies and will fail during an international
- * blackout; the admin screen says so in those words before you confirm it.
- * Nothing here ever records anything per visitor — counts are daily
- * aggregates.
+ * Pages are cached as static files, so a creative chosen on the server would
+ * be frozen into the cached page and shown to every reader until the cache
+ * cleared. Instead the page carries the slot's eligible creatives and the
+ * browser picks one. Impressions are counted when a creative is actually on
+ * screen, by an anonymous beacon — nothing is written while a page renders,
+ * and nothing identifies the reader.
  */
 final class Ads
 {
     /**
-     * Pick a creative for a slot.
+     * Every creative currently eligible for a slot, validated and ready to
+     * embed. Contextual targeting only: a creative may be tied to a field,
+     * never to anything about the person reading.
      *
-     * Contextual targeting only: a creative may be tied to a field, never to
-     * anything about the person reading. Selection is weighted-random so a
-     * rotation is possible without storing which ad a visitor last saw.
+     * @return list<array{id:int,title:string,body:string,href:string,image:?string,alt:string,weight:int}>
      */
-    public static function creativeFor(string $slotKey, ?int $fieldId = null): ?array
+    public static function eligibleCreatives(string $slotKey, ?int $fieldId = null): array
     {
         $slot = self::slot($slotKey);
         if ($slot === null || !$slot['is_active'] || $slot['provider'] !== 'house') {
-            return null;
+            return [];
         }
 
-        $candidates = Database::all(
-            'SELECT c.*, m.path AS media_path, m.alt_fa AS media_alt
+        $rows = Database::all(
+            'SELECT c.id, c.title_fa, c.body_fa, c.target_url, c.weight, m.path AS media_path, m.alt_fa AS media_alt
              FROM ad_creatives c
              LEFT JOIN media m ON m.id = c.media_id
              WHERE c.slot_id = :slot
@@ -48,29 +49,38 @@ final class Ads
                AND (c.starts_at IS NULL OR c.starts_at <= NOW())
                AND (c.ends_at IS NULL OR c.ends_at >= NOW())
                AND (c.field_id IS NULL OR c.field_id = :field)
-             ORDER BY c.field_id IS NULL ASC',
+             ORDER BY c.id
+             LIMIT 20',
             ['slot' => (int) $slot['id'], 'field' => $fieldId ?? 0]
         );
 
-        if ($candidates === []) {
-            return null;
-        }
-
-        $total = array_sum(array_map(static fn($c) => max(1, (int) $c['weight']), $candidates));
-        $roll = random_int(1, $total);
-
-        foreach ($candidates as $candidate) {
-            $roll -= max(1, (int) $candidate['weight']);
-            if ($roll <= 0) {
-                self::recordImpression((int) $candidate['id']);
-                return $candidate;
+        $creatives = [];
+        foreach ($rows as $row) {
+            // A creative whose link is not plain http(s) is dropped rather
+            // than rendered: escaping alone does not stop javascript: URLs.
+            if (!UrlGuard::isHttpUrl((string) $row['target_url'])) {
+                continue;
             }
+
+            $image = UrlGuard::isMediaPath($row['media_path'] ?? null) ? '/media/' . $row['media_path'] : null;
+
+            $creatives[] = [
+                'id'     => (int) $row['id'],
+                'title'  => (string) $row['title_fa'],
+                'body'   => (string) ($row['body_fa'] ?? ''),
+                // Clicks go through our own redirect so they can be counted
+                // without a script on the sponsor's side.
+                'href'   => '/api/ad/' . (int) $row['id'] . '/go',
+                'image'  => $image,
+                'alt'    => (string) ($row['media_alt'] ?? ''),
+                'weight' => max(1, (int) $row['weight']),
+            ];
         }
 
-        return $candidates[0];
+        return $creatives;
     }
 
-    /** @return array{provider:string, network:?array}|null */
+    /** @return array<string,mixed>|null */
     public static function slot(string $key): ?array
     {
         static $cache = null;
@@ -96,30 +106,57 @@ final class Ads
             return null;
         }
 
-        return Config::string('ads.network.script_url') ?: null;
+        $url = Config::string('ads.network.script_url');
+
+        return UrlGuard::isHttpUrl($url) ? $url : null;
+    }
+
+    /** The validated destination for a click, or null if the creative is gone. */
+    public static function clickTarget(int $creativeId): ?string
+    {
+        $url = Database::value(
+            'SELECT target_url FROM ad_creatives WHERE id = :id AND is_active = 1',
+            ['id' => $creativeId]
+        );
+
+        return UrlGuard::safeHref($url === null ? null : (string) $url);
     }
 
     /**
      * Daily aggregate counters. There is no per-visitor row, no identifier,
-     * and nothing that could reconstruct one visitor's history.
+     * and nothing that could reconstruct one reader's history.
      */
     public static function recordImpression(int $creativeId): void
     {
-        Database::run(
-            'INSERT INTO ad_stats_daily (creative_id, day, impressions, clicks)
-             VALUES (:id, CURDATE(), 1, 0)
-             ON DUPLICATE KEY UPDATE impressions = impressions + 1',
-            ['id' => $creativeId]
-        );
+        self::bump($creativeId, 'impressions');
     }
 
     public static function recordClick(int $creativeId): void
     {
+        self::bump($creativeId, 'clicks');
+    }
+
+    private static function bump(int $creativeId, string $column): void
+    {
+        // The column name is interpolated below, so it is allow-listed here
+        // even though only this class calls it.
+        if (!in_array($column, ['impressions', 'clicks'], true)) {
+            return;
+        }
+
+        // Only for a creative that exists, so a beacon cannot invent rows.
+        if (Database::value('SELECT 1 FROM ad_creatives WHERE id = :id', ['id' => $creativeId]) === null) {
+            return;
+        }
+
+        $impressions = $column === 'impressions' ? 1 : 0;
+        $clicks = $column === 'clicks' ? 1 : 0;
+
         Database::run(
-            'INSERT INTO ad_stats_daily (creative_id, day, impressions, clicks)
-             VALUES (:id, CURDATE(), 0, 1)
-             ON DUPLICATE KEY UPDATE clicks = clicks + 1',
-            ['id' => $creativeId]
+            "INSERT INTO ad_stats_daily (creative_id, day, impressions, clicks)
+             VALUES (:id, CURDATE(), :i, :c)
+             ON DUPLICATE KEY UPDATE {$column} = {$column} + 1",
+            ['id' => $creativeId, 'i' => $impressions, 'c' => $clicks]
         );
     }
 }

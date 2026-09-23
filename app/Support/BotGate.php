@@ -130,22 +130,14 @@ final class BotGate
         }
 
         $cacheKey = 'crawler:' . Privacy::hashValue($request->ip . '|' . $claimed['name']);
-        $cached = Database::value(
-            'SELECT value FROM settings WHERE name = :name AND updated_at > DATE_SUB(NOW(), INTERVAL 1 DAY)',
-            ['name' => $cacheKey]
-        );
+        $cached = Ephemeral::get($cacheKey);
 
         if ($cached !== null) {
             return $cached === '1';
         }
 
         $verified = self::reverseForwardConfirm($request->ip, $claimed['domains']);
-
-        Database::run(
-            'INSERT INTO settings (name, value) VALUES (:name, :value)
-             ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()',
-            ['name' => $cacheKey, 'value' => $verified ? '1' : '0']
-        );
+        Ephemeral::put($cacheKey, $verified ? '1' : '0', 86400);
 
         return $verified;
     }
@@ -183,6 +175,9 @@ final class BotGate
 
         if (str_starts_with($path, '/assets/') || str_starts_with($path, '/media/')) {
             return 'asset';
+        }
+        if ($path === '/api/beacon') {
+            return 'beacon';
         }
         if (str_starts_with($path, '/api/')) {
             return 'api';

@@ -72,7 +72,7 @@ use App\Core\View;
       </div>
     </header>
 
-    <?php if ($hero !== null): ?>
+    <?php if ($hero !== null && \App\Support\UrlGuard::isMediaPath($hero['path'] ?? null)): ?>
       <figure class="article__hero">
         <img src="/media/<?= e($hero['path']) ?>"
              alt="<?= e($hero['alt_fa'] ?? $article['title_fa']) ?>"
@@ -113,9 +113,14 @@ use App\Core\View;
             <li id="ref-<?= (int) $reference['marker'] ?>">
               <span class="references__marker"><?= e(fa((int) $reference['marker'])) ?>.</span>
               <span>
-                <a class="references__title" href="<?= e($reference['url']) ?>" rel="nofollow noopener" target="_blank">
-                  <?= e($reference['title'] ?: $reference['url']) ?>
-                </a>
+                <?php $refHref = \App\Support\UrlGuard::safeHref($reference['url']); ?>
+                <?php if ($refHref !== null): ?>
+                  <a class="references__title" href="<?= e($refHref) ?>" rel="nofollow noopener" target="_blank">
+                    <?= e($reference['title'] ?: $refHref) ?>
+                  </a>
+                <?php else: ?>
+                  <span class="references__title"><?= e($reference['title'] ?: '') ?></span>
+                <?php endif; ?>
                 <span class="references__source">
                   <?= e($reference['domain']) ?><?php
                     if (!empty($reference['author'])) { echo ' · ' . e($reference['author']); }

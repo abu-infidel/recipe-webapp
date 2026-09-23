@@ -134,4 +134,45 @@ final class HtmlSanitizerTest extends TestCase
         $this->assertStringNotContains('<form', $out);
         $this->assertStringNotContains('<input', $out);
     }
+
+    public function testKeepsLocalMediaImages(): void
+    {
+        $out = HtmlSanitizer::clean('<img src="/media/2026/ab12cd.webp" alt="قورمه">');
+        $this->assertStringContains('src="/media/2026/ab12cd.webp"', $out);
+    }
+
+    public function testRemovesRemoteImagesEntirely(): void
+    {
+        // A remote image is a tracking pixel and a blackout-breaking request.
+        $out = HtmlSanitizer::clean('<p>متن</p><img src="https://tracker.example/p.gif">');
+
+        $this->assertStringNotContains('<img', $out, 'an image with no allowed source is dropped, not left empty');
+        $this->assertStringContains('متن', $out);
+    }
+
+    public function testRemovesProtocolRelativeImages(): void
+    {
+        $out = HtmlSanitizer::clean('<img src="//tracker.example/p.gif">');
+        $this->assertStringNotContains('<img', $out);
+    }
+
+    public function testRejectsTraversalInMediaPath(): void
+    {
+        $out = HtmlSanitizer::clean('<img src="/media/../../app/config.local.php">');
+        $this->assertStringNotContains('<img', $out);
+    }
+
+    public function testScriptInsideAWorkerDraftIsNeutralised(): void
+    {
+        // The shape a compromised worker would send to land stored XSS in the
+        // admin review screen.
+        $payload = '<p>متن عادی</p><img src=x onerror="fetch(\'/admin\')"><svg onload=alert(1)><a href="javascript:alert(1)">x</a>';
+        $out = HtmlSanitizer::clean($payload);
+
+        $this->assertStringNotContains('onerror', $out);
+        $this->assertStringNotContains('onload', $out);
+        $this->assertStringNotContains('<svg', $out);
+        $this->assertStringNotContains('javascript:', $out);
+        $this->assertStringContains('متن عادی', $out);
+    }
 }

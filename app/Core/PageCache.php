@@ -145,7 +145,7 @@ final class PageCache
 
     private static function root(): string
     {
-        return rtrim(Config::string('cache.dir', dirname(__DIR__, 2) . '/public/cache/pages'), '/');
+        return Paths::pages();
     }
 
     private static function removeDirectory(string $directory): int

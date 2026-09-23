@@ -12,6 +12,7 @@ use App\Domain\ArticleRepository;
 use App\Domain\FieldRepository;
 use App\Domain\JobQueue;
 use App\Domain\Publisher;
+use App\Support\HtmlSanitizer;
 
 /**
  * Article management, and the review screen the whole workflow exists for.
@@ -125,7 +126,8 @@ final class ArticleController extends AdminController
         Database::update('articles', [
             'title_fa'   => trim((string) $request->input('title_fa', $article['title_fa'])),
             'summary_fa' => trim((string) $request->input('summary_fa', '')),
-            'body_html'  => (string) $request->input('body_html', $article['body_html']),
+            // Stored sanitised, so every reader of this column can rely on it.
+            'body_html'  => HtmlSanitizer::clean((string) $request->input('body_html', $article['body_html'])),
         ], 'id = :id', ['id' => $id]);
 
         AdminAuth::audit(

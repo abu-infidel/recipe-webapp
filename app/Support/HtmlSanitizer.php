@@ -111,6 +111,12 @@ final class HtmlSanitizer
             }
 
             self::scrubAttributes($child, $tag);
+
+            if ($tag === 'img' && !$child->hasAttribute('src')) {
+                $child->parentNode?->removeChild($child);
+                continue;
+            }
+
             self::scrub($child, $document);
         }
     }
@@ -134,8 +140,15 @@ final class HtmlSanitizer
 
             $value = $element->getAttribute($name);
 
-            if ($lower === 'href' || $lower === 'src') {
+            if ($lower === 'href') {
                 if (!self::isSafeUrl($value)) {
+                    $element->removeAttribute($name);
+                }
+            } elseif ($lower === 'src') {
+                // Images come from this site's own media directory and nowhere
+                // else. A remote image is a tracking pixel, and a request to a
+                // foreign server that an international blackout would break.
+                if (!self::isLocalMedia($value)) {
                     $element->removeAttribute($name);
                 }
             } elseif ($lower === 'class') {
@@ -181,6 +194,12 @@ final class HtmlSanitizer
         $scheme = parse_url($url, PHP_URL_SCHEME);
 
         return in_array(strtolower((string) $scheme), ['http', 'https'], true);
+    }
+
+    private static function isLocalMedia(string $src): bool
+    {
+        return preg_match('#^/media/[A-Za-z0-9][A-Za-z0-9/_\-.]*$#', $src) === 1
+            && !str_contains($src, '..');
     }
 
     /** Replace an element with its children. */

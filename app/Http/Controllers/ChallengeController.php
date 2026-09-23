@@ -4,44 +4,36 @@ declare(strict_types=1);
 namespace App\Http\Controllers;
 
 use App\Core\Config;
-use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Core\View;
+use App\Support\Ephemeral;
 use App\Support\Privacy;
 
 /**
  * The proof-of-work interstitial shown to a client that tripped the rate
  * limiter.
  *
- * A real reader sees a page that says "one moment" and solves in well under a
- * second; a scraper pays that cost on every request, which is what makes bulk
- * extraction uneconomic.
+ * A real reader waits well under a second; a scraper pays that cost on every
+ * request, which is what makes bulk extraction uneconomic.
  *
- * No cookie is involved. The solved challenge is recorded server-side against
- * the daily-salted IP hash, so nothing is stored on the reader's device and
- * nothing identifies them beyond the hash that expires tonight.
+ * Issuing a challenge writes nothing. The nonce is signed and carries its own
+ * issue time and the client's hashed address, so it can be verified without
+ * having been stored. Only a correctly *solved* challenge causes a write, which
+ * means an attacker cannot grow the database just by being challenged.
+ *
+ * No cookie is involved: the pass is recorded against the daily-salted IP hash.
  */
 final class ChallengeController
 {
-    private const PASS_MINUTES = 30;
+    private const PASS_SECONDS  = 1800;
+    private const NONCE_SECONDS = 300;
 
     public static function show(Request $request, string $reason = '', int $retryAfter = 30): Response
     {
-        $nonce = bin2hex(random_bytes(16));
-        $difficulty = Config::int('security.bot_gate.pow_difficulty', 16);
-
-        // The nonce is remembered so a solution cannot be replayed or
-        // precomputed for an arbitrary string.
-        Database::run(
-            'INSERT INTO settings (name, value) VALUES (:name, :value)
-             ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()',
-            ['name' => 'pow:' . $nonce, 'value' => (string) time()]
-        );
-
         $html = View::page('public.challenge', 'public.layout', [
-            'nonce'      => $nonce,
-            'difficulty' => $difficulty,
+            'nonce'      => self::issueNonce($request->ip),
+            'difficulty' => Config::int('security.bot_gate.pow_difficulty', 16),
             'retryAfter' => $retryAfter,
             'pageTitle'  => 'یک لحظه…',
             'bodyClass'  => 'page-challenge',
@@ -54,40 +46,26 @@ final class ChallengeController
             ->noCache();
     }
 
-    /** Verify a submitted solution and lift the limit for a while. */
     public static function verify(Request $request): Response
     {
         $nonce = (string) ($request->input('nonce') ?? '');
         $solution = (string) ($request->input('solution') ?? '');
 
-        if ($nonce === '' || $solution === '' || !ctype_xdigit($nonce)) {
-            return Response::json(['ok' => false, 'error' => 'bad_request'], 400)->noCache();
-        }
-
-        $issued = Database::value('SELECT value FROM settings WHERE name = :name', ['name' => 'pow:' . $nonce]);
-        if ($issued === null) {
-            return Response::json(['ok' => false, 'error' => 'unknown_nonce'], 400)->noCache();
-        }
-
-        // A challenge is single-use and short-lived.
-        Database::delete('settings', 'name = :name', ['name' => 'pow:' . $nonce]);
-
-        if (time() - (int) $issued > 300) {
-            return Response::json(['ok' => false, 'error' => 'expired'], 400)->noCache();
+        if (!self::isAuthentic($nonce, $request->ip)) {
+            return Response::json(['ok' => false, 'error' => 'invalid_nonce'], 400)->noCache();
         }
 
         if (!self::isValidSolution($nonce, $solution, Config::int('security.bot_gate.pow_difficulty', 16))) {
             return Response::json(['ok' => false, 'error' => 'invalid'], 400)->noCache();
         }
 
-        Database::run(
-            'INSERT INTO settings (name, value) VALUES (:name, :value)
-             ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = NOW()',
-            [
-                'name'  => 'powpass:' . Privacy::hashIp($request->ip),
-                'value' => (string) (time() + self::PASS_MINUTES * 60),
-            ]
-        );
+        // Single use. add() is atomic, so the same solved nonce presented twice
+        // at once still only counts once.
+        if (!Ephemeral::add('powused:' . sha1($nonce), '1', self::NONCE_SECONDS * 2)) {
+            return Response::json(['ok' => false, 'error' => 'replayed'], 400)->noCache();
+        }
+
+        Ephemeral::put('powpass:' . Privacy::hashIp($request->ip), '1', self::PASS_SECONDS);
 
         return Response::json(['ok' => true])->noCache();
     }
@@ -95,22 +73,42 @@ final class ChallengeController
     /** True while this client holds a valid pass. */
     public static function hasPass(string $ip): bool
     {
-        $until = Database::value(
-            'SELECT value FROM settings WHERE name = :name',
-            ['name' => 'powpass:' . Privacy::hashIp($ip)]
-        );
-
-        return $until !== null && (int) $until > time();
+        return Ephemeral::get('powpass:' . Privacy::hashIp($ip)) !== null;
     }
 
     /**
-     * The solution must make sha256(nonce + solution) start with $bits zero
-     * bits. Checked on the raw digest rather than the hex string so the
-     * difficulty is a real bit count.
+     * "<issued>.<random>.<signature>", signed over the issue time, the random
+     * part and the client's hashed address. Bound to the address so a solved
+     * nonce cannot be farmed out and redeemed from elsewhere.
      */
-    private static function isValidSolution(string $nonce, string $solution, int $bits): bool
+    public static function issueNonce(string $ip, ?int $now = null): string
     {
-        if (strlen($solution) > 64) {
+        $payload = ($now ?? time()) . '.' . bin2hex(random_bytes(8));
+
+        return $payload . '.' . self::sign($payload, $ip);
+    }
+
+    public static function isAuthentic(string $nonce, string $ip, ?int $now = null): bool
+    {
+        if (preg_match('/^(\d{10})\.([0-9a-f]{16})\.([0-9a-f]{32})$/', $nonce, $parts) !== 1) {
+            return false;
+        }
+
+        $age = ($now ?? time()) - (int) $parts[1];
+        if ($age < 0 || $age > self::NONCE_SECONDS) {
+            return false;
+        }
+
+        return hash_equals(self::sign($parts[1] . '.' . $parts[2], $ip), $parts[3]);
+    }
+
+    /**
+     * sha256(nonce + solution) must start with $bits zero bits, checked on the
+     * raw digest so the difficulty is a real bit count.
+     */
+    public static function isValidSolution(string $nonce, string $solution, int $bits): bool
+    {
+        if ($solution === '' || strlen($solution) > 64) {
             return false;
         }
 
@@ -124,10 +122,16 @@ final class ChallengeController
         }
 
         $remainder = $bits % 8;
-        if ($remainder === 0) {
-            return true;
-        }
 
-        return (ord($digest[$fullBytes]) >> (8 - $remainder)) === 0;
+        return $remainder === 0 || (ord($digest[$fullBytes]) >> (8 - $remainder)) === 0;
+    }
+
+    private static function sign(string $payload, string $ip): string
+    {
+        return substr(
+            hash_hmac('sha256', $payload . '|' . Privacy::hashIp($ip), 'pow|' . Config::string('security.app_key')),
+            0,
+            32
+        );
     }
 }
