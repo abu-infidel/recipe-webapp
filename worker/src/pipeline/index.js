@@ -15,7 +15,7 @@ import { search, trustTier } from '../providers/search.js';
 import { fetchAndExtract } from '../providers/extract.js';
 import { generateImage } from '../providers/image.js';
 import {
-  planPrompt, synthesisPrompt, persianPrompt, repairPrompt, imagePrompt,
+  planPrompt, synthesisPrompt, persianPrompt, repairPrompt, imagePrompt, judgePrompt,
 } from '../prompts/index.js';
 import { validateDraft } from './validate.js';
 import { renderHtml } from './render.js';
@@ -24,6 +24,7 @@ import { config } from '../config.js';
 export const stages = {
   plan, search: searchStage, fetch: fetchStage, synthesize,
   validate: validateStage, persian, image: imageStage, link, push,
+  judge,
 };
 
 // ------------------------------------------------------------------- plan
@@ -327,4 +328,39 @@ function countRefs(draft) {
     }
   }
   return total;
+}
+
+// ------------------------------------------------------------------ judge
+
+/**
+ * A contributor's submission. Not part of the research chain: the site
+ * queues it when someone sends an article, and the verdict goes back to the
+ * owner's moderation queue. The site decides what the verdict allows.
+ */
+async function judge(job, { log }) {
+  log(`judging submission ${job.payload.submission_id} (revision ${job.payload.revision})`);
+
+  const response = await chat(judgePrompt(job.payload), { temperature: 0, model: config.llm.judgeModel });
+  const verdict = parseJson(response.content, 'judgement');
+
+  if (!['approve', 'revise', 'reject'].includes(verdict.verdict) || typeof verdict.score !== 'number') {
+    throw new Error('The judgement did not follow the schema.');
+  }
+
+  log(`${verdict.verdict}, score ${verdict.score}, food safety ${verdict.food_safety_ok ? 'ok' : 'not confirmed'}`);
+
+  return {
+    result: {
+      verdict: verdict.verdict,
+      score: Math.max(0, Math.min(100, Math.round(verdict.score))),
+      food_safety_ok: verdict.food_safety_ok === true,
+      summary: String(verdict.summary ?? '').slice(0, 2000),
+      issues: Array.isArray(verdict.issues) ? verdict.issues.slice(0, 30).map((issue) => ({
+        severity: ['blocker', 'major', 'minor'].includes(issue?.severity) ? issue.severity : 'minor',
+        message: String(issue?.message ?? '').slice(0, 500),
+      })) : [],
+      model: response.model,
+    },
+    costMicros: response.costMicros,
+  };
 }

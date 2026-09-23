@@ -149,6 +149,23 @@ check(
     'the migrator and account creator must not be web-reachable'
 );
 
+// --- contributions -----------------------------------------------------------
+// Not fatal: without these the site runs, and contributor sign-in stays off.
+
+check(
+    'phone pepper set (contributor sign-in)',
+    \App\Support\PhoneNumber::isConfigured(),
+    \App\Support\PhoneNumber::isConfigured() ? 'stored numbers are keyed' : 'set security.phone_pepper (32+ random characters) to enable sign-in',
+    false
+);
+check(
+    'SMS gateway configured',
+    \App\Support\Sms\SmsGateway::isConfigured(),
+    Config::string('sms.driver', 'kavenegar') . (\App\Support\Sms\SmsGateway::isConfigured() ? '' : ' — fill in its key and template in config.local.php'),
+    false
+);
+check('curl available for the SMS gateway', function_exists('curl_init'), 'the only outbound request the site makes', false);
+
 // --- self-containment ------------------------------------------------------
 // The site must load nothing from a foreign origin, or a blackout that cuts
 // international routes would break pages that are otherwise fine.

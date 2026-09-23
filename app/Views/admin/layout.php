@@ -17,6 +17,7 @@ $flashType = ($_GET['t'] ?? 'ok') === 'error' ? 'error' : 'ok';
 $links = [
     'dashboard' => ['/admin', 'Dashboard'],
     'articles'  => ['/admin/articles', 'Articles'],
+    'submissions' => ['/admin/submissions', 'Submissions' . (($pending = \App\Domain\Submissions::pendingCount()) > 0 ? " ({$pending})" : '')],
     'fields'    => ['/admin/fields', 'Fields'],
     'themes'    => ['/admin/themes', 'Themes'],
     'settings'  => ['/admin/settings', 'Settings'],

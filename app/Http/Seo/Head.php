@@ -118,6 +118,14 @@ final class Head
             $h[] = '<link rel="stylesheet" href="' . self::e($sheet) . '">';
         }
 
+        // Core styles for core-owned pages (the account area), after the
+        // theme's so they can use its custom properties.
+        foreach ((array) ($meta['core_styles'] ?? []) as $sheet) {
+            if (is_string($sheet) && preg_match('#^/assets/core/[a-z0-9\-]+\.css$#', $sheet) === 1) {
+                $h[] = '<link rel="stylesheet" href="' . self::e(Url::asset($sheet)) . '">';
+            }
+        }
+
         foreach ((array) ($meta['json_ld'] ?? []) as $graph) {
             $h[] = '<script type="application/ld+json">' . self::json($graph) . '</script>';
         }

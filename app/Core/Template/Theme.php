@@ -118,6 +118,17 @@ final class Theme
         return $engine->render($this->template('layout'), [...$model, 'content' => new SafeHtml($content)], 'layout.mustache');
     }
 
+    /**
+     * Core-built content inside this theme's layout. Used for the account
+     * pages, whose forms carry security hooks (proof of work, CSRF tokens)
+     * that a redesign must not be able to break: the theme frames them, core
+     * owns what is inside.
+     */
+    public function renderInLayout(array $model, SafeHtml $content): string
+    {
+        return $this->engine()->render($this->template('layout'), [...$model, 'content' => $content], 'layout.mustache');
+    }
+
     public function hasTemplate(string $name): bool
     {
         return is_file($this->templatePath($name));

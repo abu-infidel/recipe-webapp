@@ -286,6 +286,22 @@ final class ViewModels
         ];
     }
 
+    /**
+     * The frame for a core-owned account page: site and page, never indexed.
+     * The content itself is built by core (see Page::core).
+     *
+     * @param list<string> $scripts extra same-origin core scripts
+     */
+    public static function account(Theme $theme, string $title, array $scripts = []): array
+    {
+        return self::base($theme, 'account', [
+            'type'        => 'account',
+            'title'       => $title,
+            'noindex'     => true,
+            'core_styles' => ['/assets/core/account.css'],
+        ], null, $scripts);
+    }
+
     // =========================================================== building blocks
 
     public static function site(): array

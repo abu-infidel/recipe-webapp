@@ -14,7 +14,9 @@
     var form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
 
-    var message = form.getAttribute('data-confirm');
+    // A button can carry its own prompt (Reject, beside Return for changes).
+    var submitter = event.submitter;
+    var message = (submitter && submitter.getAttribute('data-confirm')) || form.getAttribute('data-confirm');
     if (message && !window.confirm(message)) {
       event.preventDefault();
     }

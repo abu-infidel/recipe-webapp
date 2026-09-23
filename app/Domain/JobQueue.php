@@ -30,6 +30,7 @@ final class JobQueue
         'image',       // hero image
         'link',        // related topics and aliases
         'push',        // land the draft
+        'judge',       // a contributor's submission -> verdict, score, notes
     ];
 
     public static function enqueue(

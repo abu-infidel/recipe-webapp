@@ -66,6 +66,7 @@ final class UiContract
                 ],
                 'pages'      => self::pageTemplates(),
                 'partials'   => 'partials/<name>.mustache, included with {{> name}}. Names match ^[a-z0-9][a-z0-9_-/]*$. Partials see the same context as the tag that includes them.',
+                'core_pages' => 'The contributor area (/account/…: SMS sign-in, sending articles) is rendered by core inside your layout.mustache, because its forms carry security hooks a redesign must not break. The layout receives site, page (page.type = "account") and content, and nothing page-specific. Its styles come from core (/assets/core/account.css), which uses your custom properties when you define them: --accent, --accent-text, --text, --text-soft, --text-faint, --bg, --surface, --surface-2, --border, --border-strong, --focus, --radius, --radius-sm.',
             ],
             'common_keys'  => self::common(),
             'pages'        => self::pages(),
@@ -246,7 +247,7 @@ final class UiContract
                 'account_href' => ['href', 'Contributor sign-in and submissions.'],
             ],
             'page' => [
-                'type'        => ['string', 'The page type (home, field, article, …).'],
+                'type'        => ['string', 'The page type (home, field, article, …), or "account" on core-rendered account pages.'],
                 'title'       => ['string', 'This page\'s own title, without the site name.'],
                 'description' => ['string', ''],
                 'canonical'   => ['url?', ''],

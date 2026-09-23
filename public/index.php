@@ -95,6 +95,21 @@ $router->get(
     }
 );
 
+// ----------------------------------------------------------- contributors
+// Sign in with an SMS code and send articles for review. The one cookie here
+// is scoped to /account, so content pages stay cookie-free and cacheable.
+$router->get('/account', \App\Http\Controllers\AccountController::index(...));
+$router->post('/account/code', \App\Http\Controllers\AccountController::requestCode(...));
+$router->post('/account/verify', \App\Http\Controllers\AccountController::verify(...));
+$router->post('/account/logout', \App\Http\Controllers\AccountController::logout(...));
+$router->post('/account/profile', \App\Http\Controllers\AccountController::profile(...));
+$router->get('/account/new', \App\Http\Controllers\AccountController::create(...));
+$router->post('/account/new', \App\Http\Controllers\AccountController::submit(...));
+$router->post('/account/media', \App\Http\Controllers\AccountController::upload(...));
+$router->get('/account/submissions/{id}', \App\Http\Controllers\AccountController::show(...));
+$router->post('/account/submissions/{id}', \App\Http\Controllers\AccountController::submit(...));
+$router->post('/account/submissions/{id}/withdraw', \App\Http\Controllers\AccountController::withdraw(...));
+
 // ------------------------------------------------------------------- admin
 // English, LTR, behind a session cookie. The only cookie this site sets, and
 // it is scoped to /admin.
@@ -118,6 +133,12 @@ $router->post('/admin/articles/{id}/save', \App\Http\Controllers\Admin\ArticleCo
 $router->post('/admin/articles/{id}/publish', \App\Http\Controllers\Admin\ArticleController::publish(...));
 $router->post('/admin/articles/{id}/unpublish', \App\Http\Controllers\Admin\ArticleController::unpublish(...));
 
+$router->get('/admin/submissions', \App\Http\Controllers\Admin\SubmissionController::index(...));
+$router->get('/admin/submissions/{id}', \App\Http\Controllers\Admin\SubmissionController::show(...));
+$router->post('/admin/submissions/{id}/approve', \App\Http\Controllers\Admin\SubmissionController::approve(...));
+$router->post('/admin/submissions/{id}/decide', \App\Http\Controllers\Admin\SubmissionController::decide(...));
+$router->post('/admin/contributors/{id}/suspend', \App\Http\Controllers\Admin\SubmissionController::suspend(...));
+
 $router->get('/admin/fields', \App\Http\Controllers\Admin\FieldController::index(...));
 $router->post('/admin/fields/create', \App\Http\Controllers\Admin\FieldController::create(...));
 $router->post('/admin/fields/{id}/update', \App\Http\Controllers\Admin\FieldController::update(...));
@@ -131,6 +152,7 @@ $router->get('/admin/themes/{name}/preview', \App\Http\Controllers\Admin\ThemeCo
 
 $router->get('/admin/settings', \App\Http\Controllers\Admin\SettingsController::index(...));
 $router->post('/admin/settings/ad-slot/{id}', \App\Http\Controllers\Admin\SettingsController::updateAdSlot(...));
+$router->post('/admin/settings/contributions', \App\Http\Controllers\Admin\SettingsController::updateContributions(...));
 $router->post('/admin/settings/flush-cache', \App\Http\Controllers\Admin\SettingsController::flushCache(...));
 $router->post('/admin/settings/unblock', \App\Http\Controllers\Admin\SettingsController::unblock(...));
 
@@ -203,6 +225,7 @@ if (
     && $response->status() === 200
     && $request->query === []
     && !str_starts_with($request->path, '/admin')
+    && !str_starts_with($request->path, '/account')
     && !str_starts_with($request->path, '/api/')
     && $request->path !== '/search'
     && \App\Http\Controllers\Admin\AdminAuthProbe::isAnonymous()

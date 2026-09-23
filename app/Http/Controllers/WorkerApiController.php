@@ -87,6 +87,7 @@ final class WorkerApiController
             $outcome = match ((string) $job['type']) {
                 'fetch' => self::storeSources($result),
                 'push'  => self::landDraft($job, $result),
+                'judge' => self::landJudgement($job, $result),
                 default => ['stored' => true],
             };
         } catch (\Throwable $e) {
@@ -304,6 +305,26 @@ final class WorkerApiController
             'status'     => 'draft',
             'validation' => $validation,
         ];
+    }
+
+    /**
+     * The judge's verdict on a contributor's submission. Which submission and
+     * revision it was for come from the job as the site queued it, never from
+     * the worker's reply.
+     */
+    private static function landJudgement(array $job, array $result): array
+    {
+        $payload = json_decode((string) ($job['payload'] ?? '{}'), true) ?: [];
+
+        $outcome = \App\Domain\Submissions::recordJudgement(
+            (int) ($payload['submission_id'] ?? 0),
+            (int) ($payload['revision'] ?? 0),
+            $result
+        );
+
+        JobQueue::log((int) $job['id'], 'judge', $outcome['stored'] ? 'info' : 'warn', 'judgement: ' . $outcome['reason']);
+
+        return $outcome;
     }
 
     // ---------------------------------------------------------------- helpers

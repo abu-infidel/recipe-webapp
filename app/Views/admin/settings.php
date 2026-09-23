@@ -5,11 +5,38 @@
  * @var array  $tokens
  * @var bool   $networkEnabled
  * @var int    $cacheFiles
+ * @var array  $contributions
  * @var string $csrf
  */
 ?>
 <div class="admin-head">
   <h1>Settings</h1>
+</div>
+
+<div class="card">
+  <p class="card__title">Contributions</p>
+  <?php $c = $contributions; ?>
+  <p class="hint">
+    Sign-in by SMS needs a phone pepper and an SMS gateway in <code>app/config.local.php</code>.
+    Pepper: <strong><?= $c['pepper'] ? 'set' : 'missing' ?></strong> ·
+    gateway: <strong><?= e($c['sms_driver']) ?></strong> <?= $c['sms_ready'] ? '(configured)' : '<strong>(not configured)</strong>' ?>
+  </p>
+  <form method="post" action="/admin/settings/contributions" style="display:grid; gap:10px; margin-top:10px">
+    <input type="hidden" name="_csrf" value="<?= e($csrf) ?>">
+    <span class="checkbox">
+      <input type="checkbox" name="enabled" id="contrib-enabled" <?= $c['enabled'] ? 'checked' : '' ?>>
+      <label for="contrib-enabled" style="margin:0">Readers can sign in and send articles</label>
+    </span>
+    <span class="checkbox">
+      <input type="checkbox" name="judge_can_publish" id="contrib-judge" <?= $c['judge_can_publish'] ? 'checked' : '' ?>>
+      <label for="contrib-judge" style="margin:0">
+        The LLM judge may publish an article it approves with a score of <?= (int) $c['judge_min_score'] ?> or more,
+        confirmed food safety, no major issue and at least one reference
+      </label>
+    </span>
+    <p class="hint">The judge never rejects or returns a submission; only you do. With the second box off, every submission waits for you, with the judge's notes attached.</p>
+    <div><button class="btn btn--sm" type="submit">Save</button></div>
+  </form>
 </div>
 
 <div class="card">

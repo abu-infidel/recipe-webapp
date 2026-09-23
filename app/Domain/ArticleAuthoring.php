@@ -156,14 +156,23 @@ final class ArticleAuthoring
             $slug = Slug::unique($slug, $exists);
         }
 
-        return [[
+        $row = [
             'field_id'      => (int) $field['id'],
             'slug'          => $slug,
             'kind'          => $kind,
             'title_fa'      => $title,
             'summary_fa'    => $summary !== '' ? $summary : null,
             'hero_media_id' => $heroId > 0 ? $heroId : null,
-        ], []];
+        ];
+
+        // Set only by server code (an approved submission), never from a form.
+        if (array_key_exists('author_contributor_id', $meta)) {
+            $row['author_contributor_id'] = (int) $meta['author_contributor_id'] ?: null;
+            $display = PersianText::display(trim((string) ($meta['author_display'] ?? '')));
+            $row['author_display'] = $display !== '' ? mb_substr($display, 0, 80, 'UTF-8') : null;
+        }
+
+        return [$row, []];
     }
 
     /**

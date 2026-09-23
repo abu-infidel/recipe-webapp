@@ -34,6 +34,28 @@ final class Page
     }
 
     /**
+     * A core-built page (the account area) inside the theme's layout. Never
+     * cached, never indexed. Falls back to the plain page like any other.
+     *
+     * @param list<string> $scripts same-origin core scripts for this page
+     */
+    public static function core(string $title, string $html, array $scripts = [], int $status = 200): Response
+    {
+        $theme = Theme::active();
+        $model = ViewModels::account($theme, $title, $scripts);
+        $content = new \App\Core\Template\SafeHtml($html);
+
+        try {
+            $body = $theme->renderInLayout($model, $content);
+        } catch (TemplateError $e) {
+            error_log("Theme \"{$theme->name}\" failed on an account page: " . $e->getMessage());
+            $body = self::fallback([...$model, 'content' => $content]);
+        }
+
+        return Response::html($body, $status)->noCache()->withHeader('X-Robots-Tag', 'noindex, nofollow');
+    }
+
+    /**
      * A deliberately plain page. Only core-built values reach it, all escaped
      * or already SafeHtml.
      */
@@ -42,7 +64,9 @@ final class Page
         $e = static fn(mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $body = '';
-        if (isset($data['article']['body'])) {
+        if (isset($data['content'])) {
+            $body = (string) $data['content'];
+        } elseif (isset($data['article']['body'])) {
             $body = '<h1>' . $e($data['article']['title']) . '</h1>' . $data['article']['body'];
         } elseif (isset($data['error'])) {
             $body = '<h1>' . $e($data['error']['headline']) . '</h1><p>' . $e($data['error']['message']) . '</p>';

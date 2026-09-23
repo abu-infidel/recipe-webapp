@@ -31,6 +31,14 @@ final class SettingsController extends AdminController
                 'SELECT id, name, scopes, last_used_at, created_at, is_active FROM api_tokens ORDER BY id DESC'
             ),
             'networkEnabled' => Config::bool('ads.network.enabled'),
+            'contributions' => [
+                'enabled'           => \App\Support\Settings::bool('contributions.enabled', true),
+                'judge_can_publish' => \App\Support\Settings::bool('contributions.judge_can_publish', true),
+                'judge_min_score'   => Config::int('contributions.judge_min_score', 80),
+                'pepper'            => \App\Support\PhoneNumber::isConfigured(),
+                'sms_driver'        => Config::string('sms.driver', 'kavenegar'),
+                'sms_ready'         => \App\Support\Sms\SmsGateway::isConfigured(),
+            ],
             'cacheFiles' => self::countCachedPages(),
         ]);
     }
@@ -70,6 +78,24 @@ final class SettingsController extends AdminController
         }
 
         return self::redirectWith('/admin/settings', $message);
+    }
+
+    /** The two contribution switches, stored as runtime settings. */
+    public static function updateContributions(Request $request): Response
+    {
+        $guard = self::guard($request, true);
+        if ($guard !== null) {
+            return $guard;
+        }
+
+        $enabled = $request->input('enabled') !== null;
+        $judge = $request->input('judge_can_publish') !== null;
+        \App\Support\Settings::set('contributions.enabled', $enabled);
+        \App\Support\Settings::set('contributions.judge_can_publish', $judge);
+
+        AdminAuth::audit(AdminAuth::user($request)['id'] ?? null, 'contributions_settings', null, null, $request, ['enabled' => $enabled, 'judge_can_publish' => $judge]);
+
+        return self::redirectWith('/admin/settings', 'Contribution settings saved.');
     }
 
     public static function flushCache(Request $request): Response

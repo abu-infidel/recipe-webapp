@@ -67,6 +67,8 @@ export const config = {
     baseUrl: optional('LLM_BASE_URL', 'https://api.deepseek.com/v1').replace(/\/$/, ''),
     apiKey: optional('LLM_API_KEY'),
     model: optional('LLM_MODEL', 'deepseek-chat'),
+    // The judge can use a different (stronger or cheaper) model.
+    judgeModel: optional('LLM_JUDGE_MODEL', optional('LLM_MODEL', 'deepseek-chat')),
     reasoningModel: optional('LLM_MODEL_REASONING', 'deepseek-reasoner'),
     maxTokens: number('LLM_MAX_TOKENS', 8000),
   },

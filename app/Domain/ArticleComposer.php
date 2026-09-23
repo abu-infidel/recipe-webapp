@@ -55,6 +55,23 @@ final class ArticleComposer
         'summary'     => 600,
     ];
 
+    /** Messages in the admin's English and the contributor's Persian. */
+    private const MESSAGES = [
+        'intro'               => ['Introduction', 'مقدمه'],
+        'section'             => ['Section %d', 'بخش %d'],
+        'section_no_heading'  => ['Section %d has content but no heading.', 'بخش %d متن دارد اما عنوان ندارد.'],
+        'too_many_sections'   => ['At most %d sections.', 'حداکثر %d بخش مجاز است.'],
+        'reference_bad_url'   => ['Reference %d: the address must start with http:// or https://.', 'منبع %d: نشانی باید با http:// یا https:// شروع شود.'],
+        'reference_duplicate' => ['Reference %d is the same address as reference %d; cite [%d] instead.', 'منبع %d همان نشانی منبع %d است؛ به‌جای آن به [%d] ارجاع دهید.'],
+        'too_many_references' => ['At most %d references.', 'حداکثر %d منبع مجاز است.'],
+        'no_text'             => ['The article has no text.', 'نوشته هنوز متنی ندارد.'],
+        'block_too_long'      => ['%s: a block is longer than %d characters; split it.', '%s: یکی از قطعه‌ها بیش از %d نویسه است؛ آن را به چند قطعه تقسیم کنید.'],
+        'too_many_blocks'     => ['%s: at most %d blocks.', '%s: حداکثر %d قطعه مجاز است.'],
+        'recipe_limits'       => ['At most %d ingredients and %d steps.', 'حداکثر %d ماده و %d مرحله مجاز است.'],
+    ];
+
+    private static string $lang = 'en';
+
     /** A citation marker: [3], [۳], [1، 2], [1,2]. */
     private const CITE = '/\[\s*([0-9۰-۹٠-٩]{1,3}(?:\s*[,،]\s*[0-9۰-۹٠-٩]{1,3})*)\s*\]/u';
 
@@ -68,27 +85,36 @@ final class ArticleComposer
      *
      * @return array{doc: array, errors: list<string>}
      */
-    public static function normalize(mixed $input): array
+    public static function normalize(mixed $input, string $lang = 'en'): array
     {
-        $input = is_array($input) ? $input : [];
+        self::$lang = $lang === 'fa' ? 'fa' : 'en';
+        try {
+            return self::normalizeDocument(is_array($input) ? $input : []);
+        } finally {
+            self::$lang = 'en';
+        }
+    }
+
+    private static function normalizeDocument(array $input): array
+    {
         $errors = [];
 
-        $intro = self::blocks($input['intro'] ?? [], 'Introduction', $errors);
+        $intro = self::blocks($input['intro'] ?? [], self::msg('intro'), $errors);
 
         $sections = [];
         foreach (array_slice(self::listOf($input['sections'] ?? []), 0, self::LIMITS['sections']) as $i => $section) {
             $heading = self::text($section['heading'] ?? '', self::LIMITS['heading'], true);
-            $blocks = self::blocks($section['blocks'] ?? [], 'Section ' . ($i + 1), $errors);
+            $blocks = self::blocks($section['blocks'] ?? [], self::msg('section', $i + 1), $errors);
             if ($heading === '' && $blocks === []) {
                 continue;   // an empty row left in the form
             }
             if ($heading === '') {
-                $errors[] = 'Section ' . ($i + 1) . ' has content but no heading.';
+                $errors[] = self::msg('section_no_heading', $i + 1);
             }
             $sections[] = ['heading' => $heading, 'blocks' => $blocks];
         }
         if (count(self::listOf($input['sections'] ?? [])) > self::LIMITS['sections']) {
-            $errors[] = 'At most ' . self::LIMITS['sections'] . ' sections.';
+            $errors[] = self::msg('too_many_sections', self::LIMITS['sections']);
         }
 
         $references = [];
@@ -101,10 +127,10 @@ final class ArticleComposer
             }
             $number = count($references) + 1;
             if (!UrlGuard::isHttpUrl($url)) {
-                $errors[] = "Reference {$number}: the address must start with http:// or https://.";
+                $errors[] = self::msg('reference_bad_url', $number);
             } elseif (isset($seen[$url])) {
                 // One source, one number, or the numbering would have a gap.
-                $errors[] = "Reference {$number} is the same address as reference {$seen[$url]}; cite [{$seen[$url]}] instead.";
+                $errors[] = self::msg('reference_duplicate', $number, $seen[$url], $seen[$url]);
                 continue;
             }
             $seen[$url] = $number;
@@ -118,14 +144,14 @@ final class ArticleComposer
             ];
         }
         if (count($references) > self::LIMITS['references']) {
-            $errors[] = 'At most ' . self::LIMITS['references'] . ' references.';
+            $errors[] = self::msg('too_many_references', self::LIMITS['references']);
             $references = array_slice($references, 0, self::LIMITS['references']);
         }
 
         $recipe = isset($input['recipe']) && is_array($input['recipe']) ? self::recipe($input['recipe'], $errors) : null;
 
         if ($intro === [] && $sections === []) {
-            $errors[] = 'The article has no text.';
+            $errors[] = self::msg('no_text');
         }
 
         return [
@@ -182,14 +208,14 @@ final class ArticleComposer
                 continue;
             }
             if (mb_strlen((string) ($block['text'] ?? ''), 'UTF-8') > self::LIMITS['text']) {
-                $errors[] = "{$where}: a block is longer than " . self::LIMITS['text'] . ' characters; split it.';
+                $errors[] = self::msg('block_too_long', $where, self::LIMITS['text']);
             }
 
             $out[] = ['type' => $type, 'text' => $text, 'media_id' => $type === 'image' ? $mediaId : null];
         }
 
         if (count($out) > self::LIMITS['blocks']) {
-            $errors[] = "{$where}: at most " . self::LIMITS['blocks'] . ' blocks.';
+            $errors[] = self::msg('too_many_blocks', $where, self::LIMITS['blocks']);
             $out = array_slice($out, 0, self::LIMITS['blocks']);
         }
 
@@ -226,7 +252,7 @@ final class ArticleComposer
         }
 
         if (count($ingredients) > self::LIMITS['ingredients'] || count($steps) > self::LIMITS['steps']) {
-            $errors[] = 'At most ' . self::LIMITS['ingredients'] . ' ingredients and ' . self::LIMITS['steps'] . ' steps.';
+            $errors[] = self::msg('recipe_limits', self::LIMITS['ingredients'], self::LIMITS['steps']);
         }
 
         $yield = (int) PersianText::toAsciiDigits(trim((string) ($input['yield_number'] ?? '')));
@@ -382,10 +408,15 @@ final class ArticleComposer
         $sections = [];
         $groups = [['heading' => '', 'blocks' => $doc['intro'] ?? []], ...($doc['sections'] ?? [])];
 
+        // Every group and every block keeps its position, so a finding's
+        // anchor "s{group}p{block}" points straight back at the form: s1 is
+        // the introduction, s2 the first section, and a subheading still
+        // occupies its slot (as empty text, which is never a claim).
         foreach ($groups as $group) {
             $paragraphs = [];
             foreach ($group['blocks'] ?? [] as $block) {
-                if (in_array($block['type'] ?? '', ['subheading'], true)) {
+                if (($block['type'] ?? '') === 'subheading') {
+                    $paragraphs[] = ['text' => '', 'refs' => []];
                     continue;
                 }
                 $text = (string) ($block['text'] ?? '');
@@ -400,9 +431,7 @@ final class ArticleComposer
                     'refs' => array_values(array_unique($refs)),
                 ];
             }
-            if ($paragraphs !== []) {
-                $sections[] = ['heading' => (string) $group['heading'], 'paragraphs' => $paragraphs];
-            }
+            $sections[] = ['heading' => (string) $group['heading'], 'paragraphs' => $paragraphs];
         }
 
         return ['sections' => $sections];
@@ -458,6 +487,13 @@ final class ArticleComposer
     }
 
     // ---------------------------------------------------------------- helpers
+
+    private static function msg(string $key, mixed ...$args): string
+    {
+        $text = sprintf(self::MESSAGES[$key][self::$lang === 'fa' ? 1 : 0], ...$args);
+
+        return self::$lang === 'fa' ? PersianText::toPersianDigits($text) : $text;
+    }
 
     /** @return list<int> */
     private static function markers(string $inside): array

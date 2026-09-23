@@ -133,6 +133,10 @@ return [
     ],
 
     'security' => [
+        // HMAC key for stored phone numbers. Set 32+ random characters in
+        // config.local.php. Changing it makes every contributor a stranger.
+        'phone_pepper' => '',
+
         'rate_limit' => [
             'enabled' => true,
             // requests / seconds, per hashed IP, per class
@@ -140,6 +144,7 @@ return [
             'search'  => ['limit' => 20,  'window' => 60],
             'asset'   => ['limit' => 300, 'window' => 60],
             'api'     => ['limit' => 30,  'window' => 60],
+            'account' => ['limit' => 40,  'window' => 60],
             // Anonymous counters. Separate from 'api' so a reader's own view
             // beacons can never use up the budget the search box needs.
             'beacon'  => ['limit' => 120, 'window' => 60],
@@ -191,6 +196,45 @@ return [
         'max_attempts'     => 3,
         'clock_skew'       => 300,   // HMAC timestamp tolerance
         'ip_allowlist'     => [],    // set to the VPS address before going live
+    ],
+
+    // Readers who sign in with an SMS code and send articles for review.
+    // Needs security.phone_pepper and an SMS gateway in config.local.php;
+    // without both, sign-in stays off. The switches below can also be
+    // changed in Admin > Settings.
+    'contributions' => [
+        'enabled'           => true,
+        // The worker's LLM judge reads every submission. When this is true
+        // and it approves with at least judge_min_score, the article goes
+        // live without waiting for you. It can never reject on its own.
+        'judge_can_publish' => true,
+        'judge_min_score'   => 80,
+        'max_pending'       => 3,     // open submissions per contributor
+        'max_per_day'       => 5,     // submissions per contributor per day
+        'uploads_per_day'   => 20,    // images per contributor per day
+    ],
+
+    // Sign-in codes. Limits are per phone number, per (hashed) address, and
+    // for the whole site, which caps what an attacker can cost you in SMS.
+    'otp' => [
+        'ttl_seconds'        => 120,
+        'max_attempts'       => 5,
+        'resend_seconds'     => 60,
+        'per_phone_per_day'  => 5,
+        'per_ip_per_hour'    => 10,
+        'global_per_hour'    => 300,
+        'session_days'       => 30,
+    ],
+
+    // The only outbound request the site makes, and only on sign-in. All
+    // drivers are domestic gateways. 'log' writes codes to var/ and only
+    // works with debug on.
+    'sms' => [
+        'driver'    => 'kavenegar',   // kavenegar | smsir | ghasedak | log
+        'timeout'   => 8,
+        'kavenegar' => ['api_key' => '', 'template' => ''],
+        'smsir'     => ['api_key' => '', 'template_id' => 0, 'parameter' => 'CODE'],
+        'ghasedak'  => ['api_key' => '', 'template' => ''],
     ],
 
     'offline' => [

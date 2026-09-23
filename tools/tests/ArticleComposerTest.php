@@ -169,8 +169,12 @@ final class ArticleComposerTest extends TestCase
 
         $this->assertSame('', $draft['sections'][0]['heading']);
         $this->assertSame(['text' => 'آب ۱۸۰ میلی‌لیتر', 'refs' => [2]], $draft['sections'][0]['paragraphs'][0]);
-        $this->assertSame([1, 3], $draft['sections'][1]['paragraphs'][0]['refs']);
-        $this->assertSame(1, count($draft['sections'][1]['paragraphs']), 'subheadings are not claims');
+        $this->assertSame(['text' => '', 'refs' => []], $draft['sections'][1]['paragraphs'][0], 'a subheading keeps its slot but is not a claim');
+        $this->assertSame([1, 3], $draft['sections'][1]['paragraphs'][1]['refs']);
+
+        $noIntro = ArticleComposer::draft($this->doc(['sections' => [['heading' => 'الف', 'blocks' => [['text' => 'x [1]']]]]]));
+        $this->assertSame([], $noIntro['sections'][0]['paragraphs'], 'an empty introduction still counts as s1');
+        $this->assertSame([1], $noIntro['sections'][1]['paragraphs'][0]['refs']);
     }
 
     public function testValidatorCatchesInventedReferencesAndUsesTheQuote(): void

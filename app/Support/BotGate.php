@@ -229,6 +229,10 @@ final class BotGate
         if ($path === '/search') {
             return 'search';
         }
+        // Its own budget, and never counted as reading articles.
+        if ($path === '/account' || str_starts_with($path, '/account/')) {
+            return 'account';
+        }
 
         return 'article';
     }

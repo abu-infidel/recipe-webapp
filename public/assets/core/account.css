@@ -1,0 +1,113 @@
+/*
+ * The contributor area. Core-owned markup inside the theme's layout, so it
+ * uses the theme's custom properties where they exist and plain fallbacks
+ * where they do not. Logical properties throughout: the page is RTL.
+ */
+.account {
+  max-inline-size: 46rem;
+  margin-inline: auto;
+  padding: 1.5rem 1rem 3rem;
+  line-height: 1.9;
+}
+.account--narrow { max-inline-size: 28rem; }
+.account--wide { max-inline-size: 52rem; }
+.account h1 { font-size: 1.6rem; margin-block: 0 0.75rem; }
+.account h2 { font-size: 1.15rem; margin-block: 2rem 0.75rem; }
+.account__lead { color: var(--text-soft, #56514a); }
+.account__head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+
+.account__form { display: grid; gap: 0.5rem; }
+.account__form label { font-weight: 600; font-size: 0.95rem; margin-block-start: 0.5rem; }
+.account__form small { font-weight: 400; color: var(--text-faint, #837c72); }
+.account input[type=text], .account input[type=tel], .account input[type=url], .account select, .account textarea {
+  inline-size: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-strong, #cdc7b8);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--surface, #fff);
+  color: var(--text, #1d1b16);
+  font: inherit;
+}
+.account textarea { resize: vertical; min-block-size: 3rem; }
+.account input:focus, .account select:focus, .account textarea:focus {
+  outline: 2px solid var(--focus, #1f6feb);
+  outline-offset: 1px;
+}
+.account input[dir=ltr] { text-align: left; } /* physical: an LTR number field reads left to right */
+.account__code { font-size: 1.6rem; letter-spacing: 0.4em; text-align: center; }
+.account button, .account__button {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border: 0;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--accent, #b4541f);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+.account button:disabled { opacity: 0.6; cursor: progress; }
+.account__button--quiet { background: var(--surface-2, #f7f5f0); color: var(--text, #1d1b16); border: 1px solid var(--border, #e4e0d6); }
+.account__link-button { background: none !important; color: var(--accent-text, #934014) !important; padding: 0 !important; text-decoration: underline; font-weight: 400 !important; }
+.account__actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.account__row { display: grid; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 0 1rem; }
+
+.account__error, .account__ok, .account__note, .account__review-note {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm, 8px);
+  border-inline-start: 3px solid;
+}
+.account__error { background: color-mix(in srgb, #c53030 10%, var(--surface, #fff)); border-color: #c53030; }
+.account__ok { background: color-mix(in srgb, #2f855a 10%, var(--surface, #fff)); border-color: #2f855a; }
+.account__note { background: var(--surface-2, #f7f5f0); border-color: var(--border-strong, #cdc7b8); }
+.account__review-note { background: color-mix(in srgb, #b7791f 10%, var(--surface, #fff)); border-color: #b7791f; }
+.account__error ul { margin: 0.25rem 0 0; padding-inline-start: 1.25rem; }
+.account__status { min-block-size: 1.5em; color: var(--text-soft, #56514a); font-size: 0.9rem; }
+.account__privacy { margin-block-start: 2rem; font-size: 0.9rem; color: var(--text-soft, #56514a); }
+.account__privacy h2 { font-size: 1rem; }
+
+.account__list { list-style: none; padding: 0; display: grid; gap: 0.75rem; }
+.account__list li { padding: 0.75rem 1rem; border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius-sm, 8px); background: var(--surface, #fff); }
+.account__list .account__review-note { margin-block: 0.5rem 0; font-size: 0.9rem; }
+.account__badge { display: inline-block; margin-inline-start: 0.5rem; padding: 0 0.6rem; border-radius: 999px; font-size: 0.8rem; background: var(--surface-2, #f7f5f0); }
+.account__badge--approved { background: color-mix(in srgb, #2f855a 15%, var(--surface, #fff)); }
+.account__badge--needs_changes { background: color-mix(in srgb, #b7791f 18%, var(--surface, #fff)); }
+.account__badge--rejected { background: color-mix(in srgb, #c53030 12%, var(--surface, #fff)); }
+.account__live { display: inline-block; margin-inline-start: 0.5rem; font-size: 0.9rem; }
+.account__guide { margin-block: 1rem; padding: 0.5rem 1rem; border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius-sm, 8px); }
+.account__guide summary { cursor: pointer; font-weight: 600; }
+.account__preview { margin-block-start: 1.5rem; }
+.account__withdraw { margin-block-start: 1rem; }
+
+/* The shared composer, in the public site's clothes. */
+.account .card { padding: 1rem; margin-block: 1rem; border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius, 14px); background: var(--surface, #fff); }
+.account .card__title { font-weight: 700; margin: 0 0 0.5rem; }
+.account .hint { font-size: 0.85rem; color: var(--text-faint, #837c72); }
+.account .field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: 0.5rem; }
+.account .field { display: grid; gap: 0.25rem; }
+.account .btn { padding: 0.35rem 0.8rem; font-size: 0.9rem; background: var(--surface-2, #f7f5f0); color: var(--text, #1d1b16); border: 1px solid var(--border, #e4e0d6); font-weight: 400; }
+.account .btn--danger { color: #c53030; }
+.account .btn:disabled { opacity: 0.4; }
+.account .composer-blocks { display: grid; gap: 0.6rem; margin-block-end: 0.6rem; }
+.account .composer-block { padding: 0.5rem; border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius-sm, 8px); }
+.account .composer-block--tip { border-inline-start: 3px solid #2f855a; }
+.account .composer-block--warning { border-inline-start: 3px solid #c05621; }
+.account .composer-block__bar, .account .composer-section__head, .account .composer-reference__head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; margin-block-end: 0.4rem; }
+.account .composer-block__bar select, .account .composer-add select { inline-size: auto; padding-block: 0.3rem; }
+.account .composer-controls { display: inline-flex; gap: 0.25rem; }
+.account .composer-controls .btn { min-inline-size: 2rem; padding-inline: 0.4rem; }
+.account .composer-add { display: flex; gap: 0.4rem; align-items: center; }
+.account .composer-rows { display: grid; gap: 0.5rem; padding: 0; list-style: none; margin-block: 0 0.6rem; }
+.account .composer-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; }
+.account .composer-row > input, .account .composer-row > textarea { flex: 1 1 8rem; min-inline-size: 0; }
+.account .composer-steps { list-style: decimal; padding-inline-start: 1.5rem; }
+.account .composer-steps > li { display: list-item; }
+.account .composer-reference { padding: 0.6rem; border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius-sm, 8px); display: grid; gap: 0.4rem; }
+.account .composer-thumb, .account .composer-hero img { max-inline-size: 16rem; max-block-size: 11rem; border-radius: var(--radius-sm, 8px); object-fit: cover; }
+.account .composer-hero { border: 1px solid var(--border, #e4e0d6); border-radius: var(--radius-sm, 8px); padding: 0.75rem; display: grid; gap: 0.4rem; margin-block: 0.75rem; }
+.account .composer-image { display: grid; gap: 0.4rem; }
+.account .composer-subtitle { font-size: 1rem; margin-block: 1rem 0.4rem; }
+.account .composer-actions { position: sticky; inset-block-end: 0; padding-block: 0.75rem; background: var(--bg, #fbfaf7); border-block-start: 1px solid var(--border, #e4e0d6); }
+.account [data-hero-remove] { justify-self: start; background: var(--surface-2, #f7f5f0); color: var(--text, #1d1b16); border: 1px solid var(--border, #e4e0d6); font-weight: 400; padding: 0.35rem 0.8rem; }

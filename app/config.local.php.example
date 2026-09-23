@@ -30,6 +30,18 @@ return [
     'security' => [
         // Generate with: php -r "echo bin2hex(random_bytes(32));"
         'app_key' => 'CHANGE-ME',
+        // Keys stored phone numbers. Generate the same way, set it once, and
+        // never change it: a new pepper makes every contributor unknown.
+        'phone_pepper' => 'CHANGE-ME',
+    ],
+
+    // SMS sign-in codes. Pick one gateway, create an OTP template in its
+    // panel, and fill in its key. See docs/DEPLOY.md.
+    'sms' => [
+        'driver' => 'kavenegar',
+        'kavenegar' => ['api_key' => '', 'template' => ''],
+        // 'smsir'    => ['api_key' => '', 'template_id' => 0, 'parameter' => 'CODE'],
+        // 'ghasedak' => ['api_key' => '', 'template' => ''],
     ],
 
     'debug' => false,

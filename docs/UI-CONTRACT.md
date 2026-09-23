@@ -193,6 +193,16 @@ Errors block installation; warnings are advice.
   proof of work, writes progress into the status element, and reloads.
 - **Ads.** Place `{{ads.top}}` etc. where the slots belong and style
   `.ad-slot` and `.ad-slot__label`. Each is `null` when the slot is empty.
+- **The contributor area.** `/account/…` (SMS sign-in, sending articles) is
+  rendered by core *inside your layout*: the layout receives `site`, `page`
+  (with `page.type` = `"account"`) and `content`, and nothing page-specific.
+  Its forms carry proof-of-work and CSRF hooks a redesign must not be able
+  to break, so their markup is core's. Their styles (`/assets/core/account.css`)
+  use your custom properties when you define them — `--accent`,
+  `--accent-text`, `--text`, `--text-soft`, `--text-faint`, `--bg`,
+  `--surface`, `--surface-2`, `--border`, `--border-strong`, `--focus`,
+  `--radius`, `--radius-sm` — so the area picks up your palette. Link to it
+  with `{{site.account_href}}`.
 - **Search suggestions.** `GET /api/search.json?q=…` returns instant
   suggestions for a header search box, if your theme wants one. The search
   page itself is a plain GET form to `{{site.search_href}}` with field `q`.
@@ -401,7 +411,7 @@ Named structures used in the tables above.
 
 | Key | Type | Notes |
 |---|---|---|
-| `type` | `string` | The page type (home, field, article, …). |
+| `type` | `string` | The page type (home, field, article, …), or "account" on core-rendered account pages. |
 | `title` | `string` | This page's own title, without the site name. |
 | `description` | `string` |  |
 | `canonical` | `url?` |  |
