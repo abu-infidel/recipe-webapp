@@ -1,0 +1,59 @@
+{
+  "about": "Cases both citation validators must agree on: app/Domain/CitationValidator.php and worker/src/pipeline/validate.js. sources is a list; marker N is item N-1. expect lists code@anchor for every finding, in order.",
+  "cases": [
+    {
+      "name": "a citation to a source that was never fetched",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "متن [۳]", "refs": [3]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "text"}],
+      "expect": ["unknown_source@s1p1", "unused_source@null"]
+    },
+    {
+      "name": "a factual paragraph with no citation",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۲۰۰ گرم آرد", "refs": []}]}]},
+      "sources": [],
+      "expect": ["uncited_claim@s1p1", "unsupported_number@s1p1"]
+    },
+    {
+      "name": "a figure must be a whole number in the source, not a substring",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۳۵ دقیقه", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "Bake for 135 minutes in 2035."}],
+      "expect": ["unsupported_number@s1p1"]
+    },
+    {
+      "name": "a figure present in the source, in Persian digits with a Persian decimal separator",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۱٫۵ پیمانه آب و ۴۵ دقیقه", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "Use 1.5 cups of water; cook 45 minutes."}],
+      "expect": []
+    },
+    {
+      "name": "a converted temperature is accepted",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "فر ۱۷۷ درجه", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "Preheat the oven to 350F."}],
+      "expect": []
+    },
+    {
+      "name": "small numbers are not converted into digits every source contains",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۳۵ دقیقه", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "Use 1.5 cups of water per cup of rice."}],
+      "expect": ["unsupported_number@s1p1"]
+    },
+    {
+      "name": "a reference with no stored text: one finding for the paragraph",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۴۵ دقیقه در ۱۸۰ درجه", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": ""}],
+      "expect": ["unverifiable_number@s1p1"]
+    },
+    {
+      "name": "mixed: one cited source has text, so figures are checked normally",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۴۵ دقیقه", "refs": [1, 2]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": ""}, {"url": "https://b.example/", "extracted_text": "20 minutes"}],
+      "expect": ["unsupported_number@s1p1"]
+    },
+    {
+      "name": "small counts and Jalali years are not claims",
+      "draft": {"sections": [{"heading": "a", "paragraphs": [{"text": "۳ مرحله در سال ۱۴۰۳", "refs": [1]}]}]},
+      "sources": [{"url": "https://a.example/", "extracted_text": "x"}],
+      "expect": []
+    }
+  ]
+}

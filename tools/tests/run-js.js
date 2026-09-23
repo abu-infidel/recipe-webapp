@@ -43,6 +43,26 @@ assert.strictEqual(PersianText.toPersianDigits('1403'), '۱۴۰۳');
 assert.strictEqual(PersianText.toAsciiDigits('۱۴۰۳'), '1403');
 passed += 2;
 
+// The citation validator: the worker's copy against the shared fixture the
+// PHP copy is also tested with (CitationValidatorTest).
+async function citationParity() {
+  const { validateDraft } = await import(path.join(__dirname, '../../worker/src/pipeline/validate.js'));
+  const cases = require(path.join(__dirname, 'fixtures/citations.json')).cases;
+  let ok = 0;
+  const drift = [];
+  for (const c of cases) {
+    const got = validateDraft(c.draft, c.sources).map((f) => `${f.code}@${f.anchor ?? 'null'}`);
+    if (JSON.stringify(got) === JSON.stringify(c.expect)) ok++;
+    else drift.push(`  ${c.name}\n      expected: ${JSON.stringify(c.expect)}\n      worker:   ${JSON.stringify(got)}`);
+  }
+  if (drift.length) {
+    console.log(`  \x1b[31mFAIL\x1b[0m CitationValidator (php/js parity)  ${ok} passed, ${drift.length} failed\n`);
+    console.log(drift.join('\n\n'));
+    process.exit(1);
+  }
+  console.log(`  \x1b[32mPASS\x1b[0m CitationValidator (php/js parity)  ${ok} passed`);
+}
+
 if (failures.length) {
   console.log(`  \x1b[31mFAIL\x1b[0m PersianText (php/js parity)  ${passed} passed, ${failures.length} failed\n`);
   console.log('\x1b[31mDrift between PHP and JS:\x1b[0m\n');
@@ -52,3 +72,5 @@ if (failures.length) {
 }
 
 console.log(`  \x1b[32mPASS\x1b[0m PersianText (php/js parity)  ${passed} passed`);
+
+citationParity();

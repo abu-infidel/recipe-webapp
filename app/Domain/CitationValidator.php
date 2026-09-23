@@ -74,8 +74,21 @@ final class CitationValidator
                 //    of the sources that paragraph itself cites. This is the
                 //    check that catches a plausible-sounding but invented
                 //    temperature, weight or time.
+                //
+                //    A hand-entered reference may have no stored text at all
+                //    (the site never fetches pages itself). Then the figures
+                //    cannot be checked either way, and one finding saying so
+                //    is more useful than one per number.
+                $unverifiable = $refs !== [] && self::noneHaveText($refs, $sources);
+                $unchecked = [];
+
                 foreach (self::numbersIn($text) as $number) {
                     if (self::isCommonNumber($number)) {
+                        continue;
+                    }
+
+                    if ($unverifiable) {
+                        $unchecked[] = $number;
                         continue;
                     }
 
@@ -95,6 +108,15 @@ final class CitationValidator
                             $anchor
                         );
                     }
+                }
+
+                if ($unchecked !== []) {
+                    $findings[] = self::finding(
+                        self::SEVERITY_WARN,
+                        'unverifiable_number',
+                        'The figures ' . implode(', ', $unchecked) . ' cannot be checked: the sources this paragraph cites have no stored text. Add a supporting quote to the reference.',
+                        $anchor
+                    );
                 }
             }
         }
@@ -122,6 +144,18 @@ final class CitationValidator
         }
 
         return ['ok' => !$hasError, 'findings' => $findings];
+    }
+
+    /** True when every cited source is known and none has any text to check. */
+    private static function noneHaveText(array $refs, array $sources): bool
+    {
+        foreach ($refs as $ref) {
+            if (!isset($sources[$ref]) || trim((string) ($sources[$ref]['extracted_text'] ?? '')) !== '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /** @return list<int> */
@@ -160,24 +194,28 @@ final class CitationValidator
     /**
      * Whether a source mentions a value.
      *
-     * Matched with tolerance, because a source may say 145F where the draft
-     * says 63C, or write 1,200 where the draft writes 1200.
+     * Matched as a whole number, so "35" is not found inside "135" or "2035",
+     * and with tolerance for a converted temperature, because a source may
+     * say 350F where the draft says 177C. The conversion is only tried for
+     * values that can be cooking temperatures: applied to small numbers it
+     * turned 35 into "1" or "2", which nearly every source contains.
      */
     private static function sourceContainsNumber(array $source, string $number): bool
     {
         $haystack = str_replace([',', '٫'], ['', '.'], PersianText::toAsciiDigits((string) ($source['extracted_text'] ?? '')));
 
-        if (str_contains($haystack, $number)) {
+        if (self::containsWholeNumber($haystack, $number)) {
             return true;
         }
 
-        // A converted temperature: allow the Fahrenheit equivalent of a
-        // Celsius figure and vice versa, within a degree of rounding.
         $value = (float) $number;
-        if ($value > 0) {
+        if ($value >= 30) {
             foreach ([$value * 9 / 5 + 32, ($value - 32) * 5 / 9] as $converted) {
+                if ($converted < 30) {
+                    continue;
+                }
                 foreach ([floor($converted), ceil($converted), round($converted)] as $candidate) {
-                    if ($candidate > 0 && str_contains($haystack, (string) (int) $candidate)) {
+                    if (self::containsWholeNumber($haystack, (string) (int) $candidate)) {
                         return true;
                     }
                 }
@@ -185,6 +223,11 @@ final class CitationValidator
         }
 
         return false;
+    }
+
+    private static function containsWholeNumber(string $haystack, string $number): bool
+    {
+        return preg_match('/(?<![\d.])' . preg_quote($number, '/') . '(?!\d|\.\d)/', $haystack) === 1;
     }
 
     /**

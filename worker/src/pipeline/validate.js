@@ -43,8 +43,21 @@ export function validateDraft(draft, sources) {
           'Paragraph states specific facts but cites no source.', anchor));
       }
 
+      // A reference with no stored text cannot support or refute a figure;
+      // say so once per paragraph. Mirrors CitationValidator.php.
+      const unverifiable = refs.length > 0 && refs.every((ref) => {
+        const source = byMarker.get(ref);
+        return source && String(source.extracted_text ?? '').trim() === '';
+      });
+      const unchecked = [];
+
       for (const number of numbersIn(text)) {
         if (isCommonNumber(number)) continue;
+
+        if (unverifiable) {
+          unchecked.push(number);
+          continue;
+        }
 
         const supported = refs.some((ref) => {
           const source = byMarker.get(ref);
@@ -55,6 +68,11 @@ export function validateDraft(draft, sources) {
           findings.push(finding('warn', 'unsupported_number',
             `The value "${number}" does not appear in any source this paragraph cites.`, anchor));
         }
+      }
+
+      if (unchecked.length > 0) {
+        findings.push(finding('warn', 'unverifiable_number',
+          `The figures ${unchecked.join(', ')} cannot be checked: the sources this paragraph cites have no stored text. Add a supporting quote to the reference.`, anchor));
       }
     }
   }
@@ -79,19 +97,29 @@ function sourceContainsNumber(source, number) {
     .replace(/,/g, '')
     .replace(/٫/g, '.');
 
-  if (haystack.includes(number)) return true;
+  if (containsWholeNumber(haystack, number)) return true;
 
-  // A source may say 145F where the draft sensibly writes 63C.
+  // A source may say 350F where the draft sensibly writes 177C. Only for
+  // values that can be cooking temperatures — on small numbers the
+  // conversion produced "1" or "2", which nearly every source contains.
+  // Mirrors CitationValidator.php.
   const value = Number(number);
-  if (value > 0) {
+  if (value >= 30) {
     for (const converted of [value * 9 / 5 + 32, (value - 32) * 5 / 9]) {
+      if (converted < 30) continue;
       for (const candidate of [Math.floor(converted), Math.ceil(converted), Math.round(converted)]) {
-        if (candidate > 0 && haystack.includes(String(candidate))) return true;
+        if (containsWholeNumber(haystack, String(candidate))) return true;
       }
     }
   }
 
   return false;
+}
+
+/** "35" must not be found inside "135" or "2035". */
+function containsWholeNumber(haystack, number) {
+  const escaped = number.replace(/\./g, '\\.');
+  return new RegExp(`(?<![\\d.])${escaped}(?!\\d|\\.\\d)`).test(haystack);
 }
 
 /** Small integers are step numbers and counts, not factual claims. */

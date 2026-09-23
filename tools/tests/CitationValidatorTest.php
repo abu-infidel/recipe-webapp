@@ -148,4 +148,23 @@ final class CitationValidatorTest extends TestCase
         $result = CitationValidator::validate(['sections' => []], []);
         $this->assertTrue($result['ok']);
     }
+
+    /** The shared fixture that worker/src/pipeline/validate.js is also run against. */
+    public function testSharedFixtureWithTheWorker(): void
+    {
+        $fixture = json_decode((string) file_get_contents(__DIR__ . '/fixtures/citations.json'), true);
+
+        foreach ($fixture['cases'] as $case) {
+            $sources = [];
+            foreach ($case['sources'] as $i => $source) {
+                $sources[$i + 1] = $source;
+            }
+            $findings = CitationValidator::validate($case['draft'], $sources)['findings'];
+            $this->assertSame(
+                $case['expect'],
+                array_map(static fn(array $f) => $f['code'] . '@' . ($f['anchor'] ?? 'null'), $findings),
+                $case['name']
+            );
+        }
+    }
 }
