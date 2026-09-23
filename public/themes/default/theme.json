@@ -5,10 +5,21 @@
   "api": 1,
   "description": "Radial orbit menu on the homepage, a warm quiet palette, Vazirmatn throughout.",
   "theme_color": "#b4541f",
-  "stylesheets": ["theme.css"],
+  "stylesheets": [
+    "theme.css"
+  ],
   "scripts": {
-    "*": ["site.js"],
-    "article": ["article.js"]
+    "*": [
+      "site.js"
+    ],
+    "article": [
+      "article.js"
+    ],
+    "home": [
+      "orbit.js"
+    ]
   },
-  "preload_fonts": ["/assets/fonts/Vazirmatn-Regular.woff2"]
+  "preload_fonts": [
+    "/assets/fonts/Vazirmatn-Regular.woff2"
+  ]
 }

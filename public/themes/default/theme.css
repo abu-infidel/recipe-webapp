@@ -411,142 +411,267 @@ html { overflow-x: clip; }
 }
 
 /* ===========================================================================
-   Homepage — the tree menu
+   Homepage — the orbit
    ---------------------------------------------------------------------------
-   The homepage holds no content. Clicking a field replaces the current set of
-   tiles with its children in place, without a page load. Levels are stacked in
-   the same grid cell so the outgoing and incoming sets can cross-fade along a
-   shared depth axis; only one is ever interactive.
+   The current field sits in the centre as a word; its children orbit it.
+   Choosing one sends it to the centre and its own children fan out around it.
+   Names only — no cards, no counts.
+
+   Without JavaScript this is a centred list of ordinary links (each goes to
+   its field page), which is also what crawlers follow. orbit.js adds
+   .is-live and takes over the positioning.
    ======================================================================== */
 
-.menu {
+.orbit-page {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  padding-block: clamp(var(--space-5), 5vh, var(--space-8));
+  align-items: center;
+  justify-content: center;
+  padding-block: clamp(var(--space-4), 4vh, var(--space-7));
+  min-height: calc(100vh - 11rem);
+  min-height: calc(100svh - 11rem);
 }
 
-.menu__intro {
-  text-align: center;
-  max-width: 44ch;
-  margin-inline: auto;
-  margin-block-end: var(--space-6);
-  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+/* Static fallback: a quiet centred list. */
+.orbit { position: relative; width: 100%; max-width: 44rem; text-align: center; }
+.orbit__center {
+  font-size: var(--step-3);
+  font-weight: 700;
+  color: var(--text);
+  margin-block-end: var(--space-5);
 }
-/* The invitation is only useful at the root; deeper levels have a breadcrumb. */
-.menu[data-depth]:not([data-depth='0']) .menu__intro {
-  opacity: 0;
-  transform: translateY(-0.75rem);
+.orbit__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2) var(--space-5);
+}
+.orbit__node {
+  display: inline-block;
+  padding: 0.55rem 0.4rem;
+  font-size: var(--step-1);
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.orbit__empty { color: var(--text-faint); }
+
+/* ------------------------------------------------------------- live orbit */
+
+.orbit.is-live {
+  --orbit-accent: var(--accent);
+  width: var(--stage, 22rem);
+  height: var(--stage, 22rem);
+  max-width: none;
+  /* Positions are computed in physical pixels from the centre, so the stage
+     itself is laid out left-to-right; every label inside is RTL again. */
+  direction: ltr;
+  text-align: initial;
+}
+
+.orbit__level {
+  position: absolute;
+  inset: 0;
+}
+.orbit__level[data-leaving] { pointer-events: none; }
+
+/* The faint ring and the glow behind the centre. */
+.orbit__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
   pointer-events: none;
-  height: 0;
-  margin-block-end: 0;
-  overflow: hidden;
+}
+.orbit__ring circle {
+  fill: none;
+  stroke: color-mix(in srgb, var(--orbit-accent) 32%, var(--border));
+  stroke-width: 1.25;
+  stroke-dasharray: 3 7;
+  transform-origin: center;
+}
+.orbit__halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11rem;
+  height: 11rem;
+  margin: -5.5rem 0 0 -5.5rem;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--orbit-accent) 16%, transparent), transparent);
+  pointer-events: none;
 }
 
-.menu__title { font-size: var(--step-4); letter-spacing: -0.02em; }
-.menu__tagline { color: var(--text-soft); margin-block-start: var(--space-3); font-size: var(--step-1); }
+/* The centre word. */
+.orbit.is-live .orbit__center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  direction: rtl;
+  text-align: center;
+  font-size: var(--step-3);
+  line-height: 1.25;
+  max-width: 11ch;
+  white-space: normal;
+  color: var(--text);
+  text-decoration: none;
+  z-index: 2;
+}
+a.orbit__center:hover, a.orbit__center:focus-visible { color: color-mix(in srgb, var(--orbit-accent) 80%, var(--text)); }
 
-/* -------------------------------------------------------------- breadcrumb */
+/* The small "open this section" action under a field's name. An action, not
+   information: it is the way into the section's page from the orbit. */
+.orbit__open {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--orbit-accent);
+  opacity: 0.9;
+}
 
-.rail {
+/* The orbiting names. Positioned by transform from the centre. */
+.orbit.is-live .orbit__list { display: block; }
+.orbit.is-live .orbit__node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  direction: rtl;
+  text-align: center;
+  white-space: normal;
+  max-width: 9.5em;
+  line-height: 1.45;
+  padding: 0.5rem 0.55rem;
+  font-size: var(--step-1);
+  font-weight: 500;
+  color: var(--text);
+  z-index: 1;
+  /* Painted in the page colour so the ring passes behind a name rather than
+     through it — beads on a string. */
+  background: var(--bg);
+  border-radius: 999px;
+  text-wrap: balance;
+  will-change: transform;
+  transition: color var(--dur-fast) var(--ease);
+}
+.orbit.is-live .orbit__node::after {
+  /* A dot marks names that open further; a leaf goes straight to its page. */
+  content: '';
+  display: block;
+  width: 5px;
+  height: 5px;
+  margin: 0.3rem auto 0;
+  border-radius: 50%;
+  background: var(--node-accent, var(--orbit-accent));
+  opacity: 0;
+  transform: scale(0.4);
+  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.orbit.is-live .orbit__node[data-branch]::after { opacity: 0.55; transform: none; }
+.orbit.is-live .orbit__node:hover,
+.orbit.is-live .orbit__node:focus-visible { color: var(--node-accent, var(--orbit-accent)); }
+.orbit.is-live .orbit__node:hover::after,
+.orbit.is-live .orbit__node:focus-visible::after { opacity: 1; transform: scale(1.3); }
+
+/* Crowded level: the title flows at the top and the names wrap beneath it.
+   Positioned by flow rather than by a centre point, so a title that wraps to
+   two lines pushes the names down instead of riding up into the trail. */
+.orbit__level[data-mode='list'] {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  padding-block: var(--space-2) var(--space-4);
+}
+.orbit.is-live .orbit__level[data-mode='list'] .orbit__center {
+  position: static;
+  transform: none;
+  max-width: 16ch;
+  margin-block-end: var(--space-4);
+  flex: none;
+}
+.orbit__level[data-mode='list'] .orbit__ring,
+.orbit__level[data-mode='list'] .orbit__halo { display: none; }
+.orbit.is-live .orbit__level[data-mode='list'] .orbit__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+  padding: 0 var(--space-4);
+  direction: rtl;
+}
+.orbit.is-live .orbit__level[data-mode='list'] .orbit__node {
+  position: static;
+  max-width: none;
+}
+
+/* Path back up: a quiet pill and the trail, above the stage. */
+.orbit-nav {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-block-end: var(--space-5);
+  gap: var(--space-2) var(--space-3);
   min-height: 2.5rem;
+  margin-block-end: var(--space-3);
+  font-size: var(--step--1);
+  color: var(--text-faint);
 }
-
-.rail__back {
+.orbit-nav[hidden] { display: flex !important; visibility: hidden; }
+.orbit-nav button {
+  font: inherit;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.4rem 0.9rem;
+  padding: 0.35rem 0.85rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 999px;
-  cursor: pointer;
   color: var(--text-soft);
-  font-size: var(--step--1);
-  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
-}
-.rail__back:hover { color: var(--text); border-color: var(--border-strong); transform: translateX(3px); }
-/* The chevron points the way "back" reads in RTL: towards the start edge. */
-.rail__back svg { transform: scaleX(-1); }
-
-.rail__crumbs { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1); font-size: var(--step--1); }
-.rail__crumb {
-  background: none;
-  border: 0;
-  padding: 0.3rem 0.55rem;
-  border-radius: var(--radius-sm);
   cursor: pointer;
-  color: var(--text-faint);
-  transition: color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
 }
-.rail__crumb:hover { color: var(--text); background: var(--surface-2); }
-.rail__crumb[aria-current='page'] { color: var(--text); font-weight: 600; cursor: default; }
-.rail__sep { color: var(--text-faint); opacity: 0.5; }
+.orbit-nav button:hover { color: var(--text); border-color: var(--border-strong); }
+.orbit-nav__trail { display: inline-flex; gap: var(--space-2); align-items: center; }
+.orbit-nav__trail button { border: 0; background: none; padding: 0.2rem 0.3rem; }
+.orbit-nav__trail [aria-current] { color: var(--text); font-weight: 600; cursor: default; }
 
-/* ------------------------------------------------------------------- stage */
-
-.menu__stage {
-  display: grid;
-  /* Every level occupies the same cell, so they overlap during a transition
-     and the stage height is driven by whichever is tallest. */
-  grid-template-areas: 'level';
-  flex: 1 0 auto;
-  align-content: start;
+/* Phones: names wrap onto two lines so a ring still fits. A long name such
+   as «نگهداری مواد غذایی» is about 180px on one line, and a name beside the
+   centre has to clear the centre word and stay inside the stage at once —
+   impossible on a 375px screen unless it wraps. */
+@media (max-width: 40rem) {
+  .orbit.is-live .orbit__node {
+    font-size: var(--step-0);
+    max-width: 6.2em;
+    padding: 0.45rem 0.4rem;
+    line-height: 1.5;
+  }
+  .orbit.is-live .orbit__center {
+    font-size: var(--step-2);
+    max-width: 8ch;
+  }
+  .orbit__halo { width: 8rem; height: 8rem; margin: -4rem 0 0 -4rem; }
 }
 
-.menu__level {
-  grid-area: level;
+@media (prefers-reduced-motion: reduce) {
+  .orbit.is-live .orbit__node { will-change: auto; }
+}
+
+/* ---------------------------------------------------------- field sub-tiles */
+
+.tile-grid {
   display: grid;
   gap: var(--space-4);
-  align-content: start;
-}
-
-/* Density tiers. The menu has to stay usable whether a field has three
-   children or fifty, without anyone editing the layout when it grows. */
-.menu__level[data-density='spacious'] { grid-template-columns: repeat(auto-fit, minmax(min(19rem, 100%), 1fr)); }
-.menu__level[data-density='medium']   { grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); }
-.menu__level[data-density='compact']  { grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: var(--space-3); }
-
-/* Transition states, driven by menu.js. */
-.menu__level[data-state='entering'] { z-index: 2; }
-.menu__level[data-state='leaving']  { z-index: 1; pointer-events: none; }
-
-@keyframes tile-in {
-  from { opacity: 0; transform: translateY(14px) scale(0.97); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes level-out {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateY(-10px) scale(1.015); }
-}
-/* Going back reverses the depth axis, so the motion reads as "coming out"
-   rather than "going in". */
-@keyframes tile-in-reverse {
-  from { opacity: 0; transform: translateY(-12px) scale(1.03); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes level-out-reverse {
-  from { opacity: 1; transform: none; }
-  to   { opacity: 0; transform: translateY(12px) scale(0.98); }
-}
-
-.menu__level[data-state='entering'] .tile {
-  animation: tile-in var(--dur) var(--ease-out) backwards;
-  animation-delay: calc(var(--i, 0) * 28ms);
-}
-.menu__level[data-state='entering'][data-direction='back'] .tile {
-  animation-name: tile-in-reverse;
-}
-.menu__level[data-state='leaving'] {
-  animation: level-out var(--dur-fast) var(--ease) forwards;
-}
-.menu__level[data-state='leaving'][data-direction='back'] {
-  animation-name: level-out-reverse;
+  grid-template-columns: repeat(auto-fill, minmax(min(14rem, 100%), 1fr));
 }
 
 /* -------------------------------------------------------------------- tile */
@@ -635,57 +760,10 @@ html { overflow-x: clip; }
 .tile:hover .tile__chevron, .tile:focus-visible .tile__chevron { opacity: 1; transform: none; }
 .tile__chevron svg { transform: scaleX(-1); }
 
-/* Compact tiles drop to a list row: at 15+ children, cards become noise. */
-.menu__level[data-density='compact'] .tile {
-  flex-direction: row;
-  align-items: center;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius);
-}
-.menu__level[data-density='compact'] .tile__icon {
-  width: 2rem; height: 2rem; font-size: 1rem; margin: 0;
-}
-.menu__level[data-density='compact'] .tile__title { font-size: var(--step-0); }
-.menu__level[data-density='compact'] .tile__blurb,
-.menu__level[data-density='compact'] .tile__meta { display: none; }
-
 /* A leaf field's articles are shown as links, visually distinct from the
    fields that drill deeper. */
 .tile--article { border-style: dashed; }
 .tile--article .tile__icon { background: var(--surface-2); color: var(--text-faint); }
-
-/* --------------------------------------------------------------- filtering */
-/* The filter appears by itself once a level is crowded. */
-
-.menu__filter { margin-block-end: var(--space-4); display: none; }
-.menu__level-wrap[data-crowded='true'] .menu__filter { display: block; }
-
-.menu__filter input {
-  width: min(24rem, 100%);
-  padding: 0.5rem var(--space-4);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  font-size: var(--step--1);
-}
-
-.tile[hidden] { display: none; }
-
-.menu__empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: var(--space-7) var(--space-4);
-  color: var(--text-faint);
-}
-
-/* -------------------------------------------------------------- no-script */
-/* The whole tree renders as nested lists when JavaScript is unavailable, so
-   the site still works and crawlers see the structure. */
-
-.menu-noscript ul { list-style: none; padding-inline-start: var(--space-5); }
-.menu-noscript > ul { padding-inline-start: 0; }
-.menu-noscript li { margin-block: var(--space-2); }
-.menu-noscript a { color: var(--text); }
 
 /* ===========================================================================
    Article page — Wikipedia-recognisable, three zones

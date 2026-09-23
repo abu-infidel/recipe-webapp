@@ -1,18 +1,32 @@
-{{! The homepage holds no content: it is the menu. This markup is the
-    no-JavaScript version (real links, so crawlers follow them too); the
-    orbit script upgrades it in place using the tree island below. }}
-<div class="container orbit-page" id="menu" data-orbit>
-  <h1 class="orbit-page__title visually-hidden">{{site.name}}</h1>
+{{! The homepage holds no content: it is the menu.
 
-  <nav class="orbit" aria-label="موضوع‌ها">
-    <p class="orbit__center" aria-hidden="true">{{site.short_name}}</p>
+    This markup is the no-JavaScript version — a centred list of ordinary
+    links, one per field, which is also what crawlers follow. orbit.js reads
+    the tree island at the bottom and turns it into the orbit in place.
+
+    data-root-label is the word shown in the centre at the top level. }}
+<div class="container orbit-page" id="menu" data-orbit>
+  <h1 class="visually-hidden">{{site.name}}</h1>
+
+  <nav class="orbit-nav" data-orbit-nav hidden aria-label="مسیر">
+    <button type="button" data-orbit-up>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      بازگشت
+    </button>
+    <span class="orbit-nav__trail" data-orbit-trail></span>
+  </nav>
+
+  <nav class="orbit" aria-label="موضوع‌ها" data-orbit-stage data-root-label="خانه">
+    <p class="orbit__center">خانه</p>
     <ul class="orbit__list">
       {{#tree}}
-      <li><a class="orbit__node" href="{{href}}" data-slug="{{slug}}"{{#accent}} style="--node-accent: {{accent}}"{{/accent}}>{{title}}</a></li>
+      <li><a class="orbit__node" href="{{href}}"{{#accent}} style="--node-accent: {{accent}}"{{/accent}}>{{title}}</a></li>
       {{/tree}}
     </ul>
     {{^has_tree}}<p class="orbit__empty">هنوز موضوعی منتشر نشده است.</p>{{/has_tree}}
   </nav>
+
+  <p class="visually-hidden" aria-live="polite" data-orbit-announce></p>
 </div>
 
 <script type="application/json" id="tree-data">{{tree_json}}</script>
