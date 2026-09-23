@@ -1,0 +1,7 @@
+<h1>{{page.title}}</h1>
+{{#has_query}}
+  {{#has_results}}<ol>{{#results}}<li><a href="{{href}}">{{title}}</a><p>{{snippet}}</p></li>{{/results}}</ol>{{/has_results}}
+  {{^has_results}}<p>نتیجه‌ای پیدا نشد.</p>{{/has_results}}
+  {{#pagination.previous_href}}<a href="{{pagination.previous_href}}">قبلی</a>{{/pagination.previous_href}}
+  {{#pagination.next_href}}<a href="{{pagination.next_href}}">بعدی</a>{{/pagination.next_href}}
+{{/has_query}}

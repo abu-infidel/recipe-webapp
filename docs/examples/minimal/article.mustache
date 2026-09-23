@@ -1,0 +1,22 @@
+{{> crumbs}}
+<article>
+  <h1>{{article.title}}</h1>
+  <p><small>{{article.kind_label}} · {{article.reading_minutes_fa}} دقیقه · {{article.updated_fa}}{{#article.author}} · {{article.author}}{{/article.author}}</small></p>
+  {{ads.top}}
+  {{#hero}}<figure><img src="{{src}}" width="{{width}}" height="{{height}}" alt="{{alt}}">{{#ai_generated}}<figcaption>تصویر ساخته‌شده با هوش مصنوعی{{#caption}} — {{caption}}{{/caption}}</figcaption>{{/ai_generated}}</figure>{{/hero}}
+  {{#article.summary}}<p class="lead">{{article.summary}}</p>{{/article.summary}}
+  {{#has_toc}}<nav aria-label="فهرست مطالب"><ol>{{#toc}}<li><a href="{{href}}">{{text}}</a></li>{{/toc}}</ol></nav>{{/has_toc}}
+  {{#recipe}}
+    <h2 id="ingredients">مواد لازم{{#yield}} ({{number_fa}} {{unit}}){{/yield}}</h2>
+    <ul>{{#ingredients}}<li>{{amount_fa}}{{amount_text}} {{unit}} {{name}}{{#has_note}} ({{note}}){{/has_note}}</li>{{/ingredients}}</ul>
+    <h2 id="steps">مراحل پخت</h2>
+    <ol>{{#steps}}<li id="{{id}}">{{text}}</li>{{/steps}}</ol>
+  {{/recipe}}
+  {{article.body}}
+  {{#has_references}}
+    <h2 id="references">منابع</h2>
+    <ol>{{#references}}<li id="{{anchor}}">{{#href}}<a href="{{href}}" rel="nofollow noopener">{{title}}</a>{{/href}}{{^href}}{{title}}{{/href}} — {{domain}}</li>{{/references}}</ol>
+  {{/has_references}}
+  {{#has_related}}<h2>موضوعات مرتبط</h2><ul>{{#related}}<li><a href="{{href}}">{{title}}</a></li>{{/related}}</ul>{{/has_related}}
+  {{ads.bottom}}
+</article>

@@ -107,10 +107,23 @@ final class ManifestController
         $base = rtrim(Url::home(), '/');
         $lines = [];
 
+        // A crawler obeys only the most specific group that names it, so the
+        // exclusions must be repeated in every group. Without them a search
+        // engine would be invited into the endless /search space, the JSON
+        // API and — worst — the honeypot, which blocks whoever fetches it.
+        $exclusions = [
+            'Disallow: /admin',
+            'Disallow: /account',
+            'Disallow: /api/',
+            'Disallow: /search',
+            'Disallow: ' . Config::string('security.bot_gate.honeypot_path', '/archive/all-entries'),
+        ];
+
         // Well-behaved assistants and search engines are welcome, at a polite
         // pace. Everything else is handled by the rate limiter, not by asking.
         foreach (['Googlebot', 'bingbot', 'GPTBot', 'OAI-SearchBot', 'ClaudeBot', 'PerplexityBot', 'Applebot'] as $agent) {
             $lines[] = "User-agent: {$agent}";
+            array_push($lines, ...$exclusions);
             $lines[] = 'Allow: /';
             $lines[] = 'Crawl-delay: 2';
             $lines[] = '';
@@ -123,10 +136,7 @@ final class ManifestController
         }
 
         $lines[] = 'User-agent: *';
-        $lines[] = 'Disallow: /admin';
-        $lines[] = 'Disallow: /api/';
-        $lines[] = 'Disallow: /search';
-        $lines[] = 'Disallow: ' . Config::string('security.bot_gate.honeypot_path', '/archive/all-entries');
+        array_push($lines, ...$exclusions);
         $lines[] = 'Allow: /';
         $lines[] = 'Crawl-delay: 5';
         $lines[] = '';

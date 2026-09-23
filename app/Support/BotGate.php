@@ -70,7 +70,13 @@ final class BotGate
 
         // 2. The honeypot. Hidden from readers and from screen readers, so
         //    only something following every href in the markup reaches it.
-        if ($request->path === Config::string('security.bot_gate.honeypot_path')) {
+        //    robots.txt disallows it for everyone, but a verified search
+        //    engine is never blocked for it: losing the index over one
+        //    misread rule would cost far more than the trap protects.
+        if (self::isHoneypot($request)) {
+            if (self::isVerifiedCrawler($request)) {
+                return self::verdict(self::CRAWLER, 'verified crawler at honeypot');
+            }
             self::block($ip, 'honeypot');
             return self::verdict(self::BLOCK, 'honeypot', 3600);
         }
@@ -195,6 +201,11 @@ final class BotGate
         return is_array($forward) && in_array($ip, $forward, true);
     }
 
+    public static function isHoneypot(Request $request): bool
+    {
+        return $request->path === Config::string('security.bot_gate.honeypot_path', '/archive/all-entries');
+    }
+
     /** Which rate-limit budget this request draws on. */
     private static function classFor(Request $request): string
     {
@@ -205,6 +216,12 @@ final class BotGate
         }
         if ($path === '/api/beacon') {
             return 'beacon';
+        }
+        // The same data as a page, as JSON: it spends the page budget and
+        // counts toward the daily cap, or it would be the cheap way to copy
+        // the site.
+        if ($path === '/api/v1/page') {
+            return 'article';
         }
         if (str_starts_with($path, '/api/')) {
             return 'api';

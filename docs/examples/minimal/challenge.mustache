@@ -1,0 +1,6 @@
+{{! core's challenge.js needs data-challenge, data-nonce, data-difficulty and data-challenge-status. }}
+<div data-challenge data-nonce="{{challenge.nonce}}" data-difficulty="{{challenge.difficulty}}">
+  <h1>یک لحظه صبر کنید…</h1>
+  <p data-challenge-status>در حال بررسی مرورگر شما.</p>
+  <noscript><p>لطفاً {{challenge.retry_minutes_fa}} دقیقه دیگر دوباره تلاش کنید.</p></noscript>
+</div>

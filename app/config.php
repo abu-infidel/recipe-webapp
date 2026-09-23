@@ -99,8 +99,15 @@ return [
     ],
 
     'ui' => [
-        // The folder under public/themes/ that renders the public site.
+        // The folder under public/themes/ that renders the public site. The
+        // admin Themes screen can override this without editing the file.
         'theme' => 'default',
+
+        // /api/v1/*: the data contract for theme authors (docs/UI-CONTRACT.md).
+        // Read-only and rate-limited like page views.
+        'api' => [
+            'enabled' => true,
+        ],
     ],
 
     'privacy' => [

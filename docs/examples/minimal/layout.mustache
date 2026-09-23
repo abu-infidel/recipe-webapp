@@ -1,0 +1,18 @@
+{{! page.head, content and page.foot are required. }}
+<!DOCTYPE html>
+<html lang="{{site.lang}}" dir="{{site.dir}}">
+<head>
+{{page.head}}
+</head>
+<body>
+<header class="bar">
+  <a href="{{site.href}}">{{site.name}}</a>
+  <form action="{{site.search_href}}" method="get" role="search">
+    <label><span class="hidden">جست‌وجو</span><input type="search" name="q" value="{{query}}" placeholder="جست‌وجو…"></label>
+  </form>
+</header>
+<main id="main">{{content}}</main>
+<footer class="bar"><a href="{{site.about_href}}">درباره</a> · <a href="{{site.feed_href}}">خوراک</a></footer>
+{{page.foot}}
+</body>
+</html>

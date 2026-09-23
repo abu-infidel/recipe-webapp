@@ -73,12 +73,24 @@ $router->post('/api/verify', ChallengeController::verify(...));
 $router->post('/api/beacon', \App\Http\Controllers\BeaconController::record(...));
 $router->get('/api/ad/{id}/go', \App\Http\Controllers\BeaconController::adClick(...));
 
+// UI API v1: the data every template receives, for building a theme without
+// the repository. docs/UI-CONTRACT.md explains it; /api/v1/schema describes it.
+$router->get('/api/v1', \App\Http\Controllers\UiApiController::schema(...));
+$router->get('/api/v1/schema', \App\Http\Controllers\UiApiController::schema(...));
+$router->get('/api/v1/page', \App\Http\Controllers\UiApiController::page(...));
+$router->get('/api/v1/fixture', \App\Http\Controllers\UiApiController::fixture(...));
+$router->get('/api/v1/tree', \App\Http\Controllers\UiApiController::tree(...));
+$router->get('/api/v1/search', \App\Http\Controllers\UiApiController::search(...));
+$router->get('/api/v1/theme', \App\Http\Controllers\UiApiController::theme(...));
+
 // The honeypot is hidden from readers and from screen readers, so only
 // something following every href in the markup ever reaches it.
 $router->get(
     \App\Core\Config::string('security.bot_gate.honeypot_path', '/archive/all-entries'),
     static function (Request $request): Response {
-        \App\Support\BotGate::block($request->ip, 'honeypot');
+        if (!\App\Support\BotGate::isVerifiedCrawler($request)) {
+            \App\Support\BotGate::block($request->ip, 'honeypot');
+        }
         return Response::text("Not found\n", 404)->noCache();
     }
 );
@@ -103,6 +115,12 @@ $router->get('/admin/fields', \App\Http\Controllers\Admin\FieldController::index
 $router->post('/admin/fields/create', \App\Http\Controllers\Admin\FieldController::create(...));
 $router->post('/admin/fields/{id}/update', \App\Http\Controllers\Admin\FieldController::update(...));
 $router->post('/admin/fields/{id}/delete', \App\Http\Controllers\Admin\FieldController::delete(...));
+
+$router->get('/admin/themes', \App\Http\Controllers\Admin\ThemeController::index(...));
+$router->post('/admin/themes/upload', \App\Http\Controllers\Admin\ThemeController::upload(...));
+$router->post('/admin/themes/{name}/activate', \App\Http\Controllers\Admin\ThemeController::activate(...));
+$router->post('/admin/themes/{name}/delete', \App\Http\Controllers\Admin\ThemeController::delete(...));
+$router->get('/admin/themes/{name}/preview', \App\Http\Controllers\Admin\ThemeController::preview(...));
 
 $router->get('/admin/settings', \App\Http\Controllers\Admin\SettingsController::index(...));
 $router->post('/admin/settings/ad-slot/{id}', \App\Http\Controllers\Admin\SettingsController::updateAdSlot(...));

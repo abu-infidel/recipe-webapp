@@ -181,6 +181,18 @@ check(
     $external === [] ? 'nothing loads from another server' : implode(', ', $external)
 );
 
+// The live theme, through the same checker the admin upload uses: templates
+// present, core head and foot rendering on every page type, nothing foreign.
+$themeName = \App\Core\Template\Theme::active()->name;
+$themeReport = \App\Core\Template\ThemeChecker::check(Paths::themes() . '/' . $themeName, $themeName);
+check(
+    "live theme \"{$themeName}\" passes the theme check",
+    $themeReport['ok'],
+    $themeReport['ok']
+        ? count($themeReport['warnings']) . ' warning(s)'
+        : implode(' | ', array_slice($themeReport['errors'], 0, 3)) . ' — run: php tools/theme-check.php'
+);
+
 // --- report ----------------------------------------------------------------
 
 echo "\n";

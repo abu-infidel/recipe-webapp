@@ -18,6 +18,7 @@ $links = [
     'dashboard' => ['/admin', 'Dashboard'],
     'articles'  => ['/admin/articles', 'Articles'],
     'fields'    => ['/admin/fields', 'Fields'],
+    'themes'    => ['/admin/themes', 'Themes'],
     'settings'  => ['/admin/settings', 'Settings'],
 ];
 ?>

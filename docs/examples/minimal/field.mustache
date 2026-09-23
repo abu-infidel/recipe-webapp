@@ -1,0 +1,7 @@
+{{> crumbs}}
+<h1>{{field.title}}</h1>
+{{#field.blurb}}<p>{{field.blurb}}</p>{{/field.blurb}}
+{{#has_children}}<ul class="tree">{{#children}}<li><a href="{{href}}">{{title}}</a></li>{{/children}}</ul>{{/has_children}}
+{{#has_articles}}<h2>{{articles_heading}}</h2><ul class="cards">{{#articles}}<li><a href="{{href}}">{{title}}</a> <small>{{kind_label}}</small><p>{{summary}}</p></li>{{/articles}}</ul>{{/has_articles}}
+<button type="button" data-save-offline data-urls="{{offline.urls_json}}">ذخیره برای خواندن آفلاین</button>
+{{ads.footer}}

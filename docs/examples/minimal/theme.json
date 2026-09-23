@@ -1,0 +1,11 @@
+{
+  "name": "minimal",
+  "title": "Minimal",
+  "version": "1.0.0",
+  "api": 1,
+  "description": "The smallest complete theme: every page type, one stylesheet, no JavaScript. A starting point, not a design.",
+  "theme_color": "#1d1b16",
+  "stylesheets": ["theme.css"],
+  "scripts": {},
+  "preload_fonts": ["/assets/fonts/Vazirmatn-Regular.woff2"]
+}

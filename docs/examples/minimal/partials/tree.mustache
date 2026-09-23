@@ -1,0 +1,2 @@
+{{! A node and its children, recursively. }}
+<li><a href="{{href}}">{{title}}</a>{{#has_children}}<ul>{{#children}}{{> tree}}{{/children}}</ul>{{/has_children}}</li>

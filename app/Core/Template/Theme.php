@@ -40,7 +40,8 @@ final class Theme
     public static function active(): self
     {
         if (self::$active === null) {
-            $name = Config::string('ui.theme', 'default');
+            // The admin's choice (Themes screen) wins over the config file.
+            $name = \App\Support\Settings::string('ui.theme', Config::string('ui.theme', 'default'));
 
             try {
                 self::$active = self::load($name);
@@ -57,11 +58,19 @@ final class Theme
 
     public static function load(string $name): self
     {
-        if (preg_match('/^[a-z0-9][a-z0-9_\-]{0,40}$/', $name) !== 1) {
+        return self::fromDirectory(Paths::themes() . '/' . $name, $name);
+    }
+
+    /**
+     * A theme from any folder. The admin's theme upload checks a theme in a
+     * staging folder outside the web root before installing it.
+     */
+    public static function fromDirectory(string $dir, string $name): self
+    {
+        if (!self::isValidName($name)) {
             throw new TemplateError("Invalid theme name \"{$name}\".");
         }
 
-        $dir = Paths::themes() . '/' . $name;
         $manifestFile = $dir . '/theme.json';
 
         if (!is_file($manifestFile)) {
@@ -78,6 +87,11 @@ final class Theme
         }
 
         return new self($name, $dir, $manifest);
+    }
+
+    public static function isValidName(string $name): bool
+    {
+        return preg_match('/^[a-z0-9][a-z0-9_\-]{0,40}$/', $name) === 1;
     }
 
     /** Point active() at a specific theme. Used by the theme checker and tests. */

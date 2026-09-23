@@ -498,7 +498,7 @@ html { overflow-x: clip; }
 }
 .orbit__halo {
   position: absolute;
-  left: 50%;
+  left: 50%; /* physical: centred by translate(-50%) */
   top: 50%;
   width: 11rem;
   height: 11rem;
@@ -511,7 +511,7 @@ html { overflow-x: clip; }
 /* The centre word. */
 .orbit.is-live .orbit__center {
   position: absolute;
-  left: 50%;
+  left: 50%; /* physical: centred by translate(-50%) */
   top: 50%;
   margin: 0;
   transform: translate(-50%, -50%);
@@ -542,7 +542,7 @@ a.orbit__center:hover, a.orbit__center:focus-visible { color: color-mix(in srgb,
 .orbit.is-live .orbit__list { display: block; }
 .orbit.is-live .orbit__node {
   position: absolute;
-  left: 50%;
+  left: 50%; /* physical: centred by translate(-50%) */
   top: 50%;
   direction: rtl;
   text-align: center;
@@ -975,6 +975,20 @@ a.orbit__center:hover, a.orbit__center:focus-visible { color: color-mix(in srgb,
 /* An internal link to an article we already have. Subtly distinct from an
    outbound one, the way a wiki link is. */
 .prose a[data-internal] { text-decoration-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+/* Callouts an author can add: note, tip, warning. The colour is a tint of the
+   text colour so it works in both light and dark without new tokens. */
+.prose .note, .prose .tip, .prose .warning {
+  padding: var(--space-3) var(--space-4);
+  border-inline-start: 3px solid var(--callout, var(--border-strong));
+  border-radius: var(--radius-sm);
+  border-start-start-radius: 0;
+  border-end-start-radius: 0;
+  background: color-mix(in srgb, var(--callout, var(--text)) 8%, var(--surface));
+}
+.prose .tip { --callout: #2f855a; }
+.prose .warning { --callout: #c05621; }
+.prose .note > :first-child, .prose .tip > :first-child, .prose .warning > :first-child { margin-block-start: 0; }
+.prose .note > * + *, .prose .tip > * + *, .prose .warning > * + * { margin-block-start: var(--space-2); }
 
 /* Citation markers. Superscript, unobtrusive, and a real link to the
    References section. */

@@ -144,4 +144,23 @@ final class SeoTest extends TestCase
         $this->assertStringContains(' defer></script>', $foot);
         $this->assertStringContains('clip-path:inset(50%)', $foot, 'honeypot present and clipped');
     }
+
+    public function testEveryRobotsGroupExcludesTheHoneypotAndApi(): void
+    {
+        $this->boot();
+        $body = \App\Http\Controllers\ManifestController::robots(\App\Core\Request::fake('GET', '/robots.txt'))->body();
+        $honeypot = \App\Core\Config::string('security.bot_gate.honeypot_path', '/archive/all-entries');
+
+        // A crawler reads only the group that names it most specifically, so
+        // each group that allows crawling must carry the exclusions itself.
+        foreach (preg_split('/\n\s*\n/', trim($body)) as $group) {
+            if (!str_contains($group, 'Allow: /')) {
+                continue;
+            }
+            $agent = strtok($group, "\n");
+            $this->assertStringContains('Disallow: ' . $honeypot, $group, "{$agent}: honeypot disallowed");
+            $this->assertStringContains('Disallow: /api/', $group, "{$agent}: API disallowed");
+            $this->assertStringContains('Disallow: /admin', $group, "{$agent}: admin disallowed");
+        }
+    }
 }
