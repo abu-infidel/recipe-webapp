@@ -136,41 +136,55 @@ final class ManifestController
         return Response::text(implode("\n", $lines))->cacheFor(86400);
     }
 
+    /**
+     * One sitemap, with image entries.
+     *
+     * Only fields with at least one published article anywhere beneath them
+     * are listed: an empty "coming soon" page is thin content, and submitting
+     * it invites a soft-404 verdict. Those pages also carry noindex.
+     *
+     * lastmod is trustworthy because nothing but a real edit moves
+     * updated_at — see BeaconController.
+     */
     public static function sitemap(Request $request): Response
     {
-        $entries = [];
-
-        foreach (Database::all(
-            "SELECT path, updated_at FROM fields WHERE is_published = 1 ORDER BY depth, sort_order"
-        ) as $field) {
-            $entries[] = [Url::field((string) $field['path']), $field['updated_at'], '0.7'];
-        }
-
-        // Bounded deliberately: an unbounded sitemap is itself a bulk export.
-        foreach (Database::all(
-            "SELECT a.slug, a.updated_at, f.path AS field_path
-             FROM articles a INNER JOIN fields f ON f.id = a.field_id
-             WHERE a.status = 'published'
-             ORDER BY a.published_at DESC LIMIT 5000"
-        ) as $article) {
-            $entries[] = [
-                Url::article((string) $article['field_path'], (string) $article['slug']),
-                $article['updated_at'],
-                '0.9',
-            ];
-        }
+        $max = max(100, Config::int('seo.sitemap_max_urls', 45000));
+        $x = static fn(?string $v): string => htmlspecialchars((string) $v, ENT_XML1 | ENT_QUOTES, 'UTF-8');
 
         $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
+        $xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'
+              . ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
 
-        foreach ($entries as [$location, $modified, $priority]) {
-            $xml .= '  <url>' . "\n";
-            $xml .= '    <loc>' . htmlspecialchars($location, ENT_XML1) . '</loc>' . "\n";
-            if ($modified) {
-                $xml .= '    <lastmod>' . date('Y-m-d', (int) strtotime((string) $modified)) . '</lastmod>' . "\n";
+        $xml .= '  <url><loc>' . $x(Url::home()) . "</loc></url>\n";
+        $count = 1;
+
+        foreach (Database::all(
+            "SELECT path, updated_at FROM fields
+             WHERE is_published = 1 AND subtree_count > 0
+             ORDER BY depth, sort_order"
+        ) as $field) {
+            $xml .= '  <url><loc>' . $x(Url::field((string) $field['path'])) . '</loc>'
+                  . '<lastmod>' . date('Y-m-d', (int) strtotime((string) $field['updated_at'])) . "</lastmod></url>\n";
+            $count++;
+        }
+
+        foreach (Database::all(
+            "SELECT a.slug, a.title_fa, a.updated_at, f.path AS field_path, m.path AS image_path
+             FROM articles a
+             INNER JOIN fields f ON f.id = a.field_id
+             LEFT JOIN media m ON m.id = a.hero_media_id
+             WHERE a.status = 'published' AND f.is_published = 1
+             ORDER BY a.published_at DESC
+             LIMIT " . ($max - $count)
+        ) as $article) {
+            $xml .= '  <url><loc>' . $x(Url::article((string) $article['field_path'], (string) $article['slug'])) . '</loc>'
+                  . '<lastmod>' . date('Y-m-d', (int) strtotime((string) $article['updated_at'])) . '</lastmod>';
+
+            if (\App\Support\UrlGuard::isMediaPath($article['image_path'] ?? null)) {
+                $xml .= '<image:image><image:loc>' . $x(Url::base() . '/media/' . $article['image_path']) . '</image:loc></image:image>';
             }
-            $xml .= '    <priority>' . $priority . '</priority>' . "\n";
-            $xml .= '  </url>' . "\n";
+
+            $xml .= "</url>\n";
         }
 
         $xml .= '</urlset>' . "\n";

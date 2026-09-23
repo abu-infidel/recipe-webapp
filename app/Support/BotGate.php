@@ -24,12 +24,22 @@ final class BotGate
     public const CHALLENGE = 'challenge';
     public const BLOCK     = 'block';
 
+    /**
+     * For a request claiming to be a search engine that could not be
+     * verified or is going too fast: 503 with Retry-After. A search engine
+     * treats 503 as "come back later" and neither indexes it nor drops the
+     * page; a proof-of-work page would be indexed as garbage or cost the site
+     * its crawl budget. A fake crawler gets nothing useful either way.
+     */
+    public const THROTTLE  = 'throttle';
+
     /** Paths that are always served, whatever else is true. */
     private const NEVER_GATED = [
         '/llms.txt',
         '/.well-known/ai-manifest.json',
         '/robots.txt',
         '/sitemap.xml',
+        '/feed.xml',
         '/about-for-ai',
         '/manifest.webmanifest',
         '/sw.js',
@@ -71,6 +81,11 @@ final class BotGate
             return self::verdict(self::CRAWLER, 'verified crawler');
         }
 
+        // Claims to be a search engine but did not verify — reverse DNS can
+        // fail on shared hosting, or the claim is fake. Either way it is never
+        // shown a challenge or blocked, only slowed with 503s.
+        $claimsSearchEngine = self::claimedCrawler($request->userAgent) !== null;
+
         // 4. Obvious scraping tooling, claimed in the UA itself.
         foreach ((array) Config::get('security.bot_gate.blocked_agents', []) as $needle) {
             if ($needle !== '' && str_contains($userAgent, strtolower((string) $needle))) {
@@ -91,14 +106,17 @@ final class BotGate
         $limit = RateLimiter::check($ip, $class);
 
         if (!$limit['allowed']) {
-            return self::verdict(self::CHALLENGE, "rate limit ({$class})", max(1, $limit['retry_after']));
+            return $claimsSearchEngine
+                ? self::verdict(self::THROTTLE, "rate limit ({$class}), unverified crawler", max(1, $limit['retry_after']))
+                : self::verdict(self::CHALLENGE, "rate limit ({$class})", max(1, $limit['retry_after']));
         }
 
         // 7. The daily cap catches the politely-paced scraper that stays
         //    under every per-minute limit. It challenges rather than blocks,
         //    because Iranian mobile carriers put thousands of readers behind
         //    one address and a block would take out the whole carrier.
-        if ($class === 'article' && !RateLimiter::countArticleRead($ip)) {
+        //    Search engines are exempt: indexing the site is a crawl, by design.
+        if ($class === 'article' && !$claimsSearchEngine && !RateLimiter::countArticleRead($ip)) {
             return self::verdict(self::CHALLENGE, 'daily article cap', 60);
         }
 
@@ -116,17 +134,7 @@ final class BotGate
      */
     public static function isVerifiedCrawler(Request $request): bool
     {
-        $userAgent = $request->userAgent;
-        $crawlers = (array) Config::get('security.bot_gate.verified_crawlers', []);
-
-        $claimed = null;
-        foreach ($crawlers as $name => $domains) {
-            if (stripos($userAgent, (string) $name) !== false) {
-                $claimed = ['name' => $name, 'domains' => (array) $domains];
-                break;
-            }
-        }
-
+        $claimed = self::claimedCrawler($request->userAgent);
         if ($claimed === null) {
             return false;
         }
@@ -142,6 +150,23 @@ final class BotGate
         Ephemeral::put($cacheKey, $verified ? '1' : '0', 86400);
 
         return $verified;
+    }
+
+    /**
+     * Which known crawler a user-agent claims to be, if any. A claim, not a
+     * fact: isVerifiedCrawler() is what establishes it.
+     *
+     * @return array{name:string, domains:list<string>}|null
+     */
+    public static function claimedCrawler(string $userAgent): ?array
+    {
+        foreach ((array) Config::get('security.bot_gate.verified_crawlers', []) as $name => $domains) {
+            if (stripos($userAgent, (string) $name) !== false) {
+                return ['name' => (string) $name, 'domains' => array_values((array) $domains)];
+            }
+        }
+
+        return null;
     }
 
     private static function reverseForwardConfirm(string $ip, array $domains): bool

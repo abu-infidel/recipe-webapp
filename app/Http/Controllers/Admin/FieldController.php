@@ -130,6 +130,7 @@ final class FieldController extends AdminController
         }
 
         Database::delete('fields', 'id = :id', ['id' => $id]);
+        Publisher::markGone((string) $field['path']);
 
         AdminAuth::audit(AdminAuth::user($request)['id'] ?? null, 'field_delete', 'field', $id, $request, [
             'path' => $field['path'],

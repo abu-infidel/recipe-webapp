@@ -83,6 +83,10 @@ final class ViewModels
                 'title'       => $field['title_fa'],
                 'description' => $field['blurb_fa'] ?: Config::string('site.tagline_fa'),
                 'canonical'   => $url,
+                // An empty branch is thin content; keep it out of the index
+                // until it has something to show. It is left out of the
+                // sitemap for the same reason.
+                'noindex'     => (int) ($field['subtree_count'] ?? 0) === 0,
                 'json_ld'     => [
                     StructuredData::breadcrumbs([...$trail, ['title' => $field['title_fa'], 'url' => $url]]),
                     StructuredData::collection($field, $url, array_map(static fn(array $c) => $c['url'], $articles)),

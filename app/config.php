@@ -14,6 +14,9 @@ return [
         'name_fa'    => 'دانشنامه دستور پخت و راهنما',
         'name_en'    => 'Persian Recipes & Guides',
         'tagline_fa' => 'دستورهای پخت و راهنماهای گام‌به‌گام، با منابع',
+        // Short form for tight spaces: the centre of the homepage menu, the
+        // installed-app label.
+        'short_name_fa' => 'دستور پخت',
         'domain'     => 'localhost:8080',
         'scheme'     => 'http',
         'locale'     => 'fa-IR',
@@ -79,6 +82,25 @@ return [
         'min_token_length' => 2,
         // Zone weights for scoring. Title matches dominate, as readers expect.
         'weights' => ['title' => 12.0, 'summary' => 4.0, 'heading' => 3.0, 'body' => 1.0, 'alias' => 8.0],
+    ],
+
+    'seo' => [
+        // Search-console ownership codes. Paste only the code, not the whole
+        // <meta> tag. Leave empty until you register the site.
+        'verification' => [
+            'google' => '',
+            'bing'   => '',
+            'yandex' => '',
+        ],
+        // schema.org recipeCuisine for recipes. Empty to omit.
+        'recipe_cuisine' => 'ایرانی',
+        // Sitemaps are capped well under the 50,000-URL limit per file.
+        'sitemap_max_urls' => 45000,
+    ],
+
+    'ui' => [
+        // The folder under public/themes/ that renders the public site.
+        'theme' => 'default',
     ],
 
     'privacy' => [

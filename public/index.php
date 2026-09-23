@@ -48,6 +48,14 @@ if (!str_starts_with($request->path, '/admin') && $request->path !== '/api/verif
         exit;
     }
 
+    if ($gate['verdict'] === \App\Support\BotGate::THROTTLE) {
+        Response::text("Temporarily unavailable. Please retry later.\n", 503)
+            ->withHeader('Retry-After', (string) max(1, $gate['retry_after']))
+            ->noCache()
+            ->send();
+        exit;
+    }
+
     if ($gate['verdict'] === \App\Support\BotGate::CHALLENGE && !ChallengeController::hasPass($request->ip)) {
         ChallengeController::show($request, $gate['reason'], $gate['retry_after'])->send();
         exit;
@@ -119,6 +127,7 @@ $router->get('/robots.txt', ManifestController::robots(...));
 $router->get('/sw.js', \App\Http\Controllers\ServiceWorkerController::script(...));
 $router->get('/offline', static fn(Request $r) => \App\Http\Page::render('offline', \App\Http\ViewModels::offline(...))->cacheFor(86400));
 $router->get('/sitemap.xml', ManifestController::sitemap(...));
+$router->get('/feed.xml', \App\Http\Controllers\FeedController::atom(...));
 
 // ------------------------------------------------------------ content lookup
 // Anything else is a field or an article. Prefix-free URLs keep Persian paths
@@ -137,7 +146,9 @@ $router->fallback(static function (Request $request): ?Response {
     return match ($match['type']) {
         ContentResolver::TYPE_FIELD    => FieldController::show($request, $match['field']),
         ContentResolver::TYPE_ARTICLE  => ArticleController::show($request, $match['field'], $match['article']),
-        ContentResolver::TYPE_REDIRECT => Response::redirect($match['to'], $match['status']),
+        ContentResolver::TYPE_REDIRECT => $match['status'] === 410
+            ? \App\Http\Controllers\ErrorController::gone($request)
+            : Response::redirect($match['to'], $match['status']),
         default => null,
     };
 });

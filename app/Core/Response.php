@@ -38,7 +38,13 @@ final class Response
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
 
-        return new self($encoded, $status, ['content-type' => 'application/json; charset=UTF-8', ...$headers]);
+        // JSON is for machines. noindex keeps API responses out of search
+        // results without stopping anything from reading them.
+        return new self($encoded, $status, [
+            'content-type' => 'application/json; charset=UTF-8',
+            'x-robots-tag' => 'noindex',
+            ...$headers,
+        ]);
     }
 
     public static function text(string $body, int $status = 200, array $headers = []): self

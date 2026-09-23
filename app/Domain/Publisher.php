@@ -109,6 +109,9 @@ final class Publisher
             return ['article_id' => $articleId, 'version' => $version, 'links' => max(0, $linkCount)];
         });
 
+        // A republished article must not keep answering 410 Gone.
+        self::clearGone((string) $field['path'] . '/' . $article['slug']);
+
         // Outside the transaction: these touch the filesystem, which cannot
         // be rolled back, so they run only once the database has committed.
         FieldRepository::recountAll();
@@ -130,6 +133,10 @@ final class Publisher
 
         Database::update('articles', ['status' => 'draft'], 'id = :id', ['id' => $articleId]);
         SearchIndex::remove($articleId);
+
+        if ($field !== null) {
+            self::markGone((string) $field['path'] . '/' . $article['slug']);
+        }
 
         FieldRepository::recountAll();
         if ($field !== null) {
@@ -195,6 +202,28 @@ final class Publisher
         }
 
         return $updated;
+    }
+
+    /**
+     * Record that a URL was removed on purpose, so it answers 410 Gone.
+     * Search engines drop a 410 from their index far faster than a 404, and
+     * it tells a reader the page is not merely mistyped.
+     */
+    public static function markGone(string $path): void
+    {
+        $path = trim($path, '/');
+
+        Database::run(
+            'INSERT INTO redirects (from_path, from_hash, to_path, status)
+             VALUES (:path, :hash, \'\', 410)
+             ON DUPLICATE KEY UPDATE to_path = \'\', status = 410',
+            ['path' => $path, 'hash' => sha1($path)]
+        );
+    }
+
+    public static function clearGone(string $path): void
+    {
+        Database::delete('redirects', 'from_hash = :hash AND status = 410', ['hash' => sha1(trim($path, '/'))]);
     }
 
     /**
