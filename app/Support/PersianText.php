@@ -7,7 +7,7 @@ namespace App\Support;
  * Persian/Farsi text handling.
  *
  * This class is the single source of truth for how Persian text is compared,
- * indexed and searched. `public/assets/js/persian.js` mirrors it for the
+ * indexed and searched. `public/assets/core/persian.js` mirrors it for the
  * client-side instant-search box; `tools/tests/PersianTextTest.php` runs the
  * shared fixture in `tools/tests/fixtures/persian.json` against both so they
  * cannot drift apart.

@@ -1,0 +1,20 @@
+{{! The page shell. It must contain page.head, content and page.foot —
+    tools/theme-check.php refuses a theme that drops any of them. }}
+<!DOCTYPE html>
+<html lang="{{site.lang}}" dir="{{site.dir}}">
+<head>
+{{page.head}}
+</head>
+<body class="page-{{page.type}}"{{#page.accent}} style="--accent: {{page.accent}}"{{/page.accent}}>
+
+<a class="skip-link" href="#main">پرش به محتوای اصلی</a>
+
+{{> header}}
+
+<main id="main">{{content}}</main>
+
+{{> footer}}
+
+{{page.foot}}
+</body>
+</html>

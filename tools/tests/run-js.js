@@ -12,7 +12,7 @@
 const assert = require('assert');
 const path = require('path');
 
-const PersianText = require(path.join(__dirname, '../../public/assets/js/persian.js'));
+const PersianText = require(path.join(__dirname, '../../public/assets/core/persian.js'));
 const fixture = require(path.join(__dirname, 'fixtures/persian.json'));
 
 let passed = 0;

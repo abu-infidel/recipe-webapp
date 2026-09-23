@@ -9,25 +9,15 @@
  * visited, on their own device, and is never read by the server.
  */
 
-const VERSION = 'v1';
+const VERSION = '__VERSION__';
 const SHELL_CACHE = `shell-${VERSION}`;
 const PAGE_CACHE = `pages-${VERSION}`;
 const ASSET_CACHE = `assets-${VERSION}`;
 
-// Everything needed to render something useful with no network at all.
-const SHELL = [
-  '/',
-  '/offline',
-  '/assets/css/site.css',
-  '/assets/js/persian.js',
-  '/assets/js/site.js',
-  '/assets/js/menu.js',
-  '/assets/js/article.js',
-  '/assets/js/theme-init.js',
-  '/assets/fonts/Vazirmatn-Regular.woff2',
-  '/assets/fonts/Vazirmatn-SemiBold.woff2',
-  '/assets/img/icon.svg',
-];
+// Everything needed to render something useful with no network at all:
+// core assets plus the active theme's, injected by the server so this list
+// can never drift from what the pages actually load.
+const SHELL = __SHELL__;
 
 // How many article pages to keep. Bounded so the cache cannot grow without
 // limit on a phone with little storage.
@@ -67,8 +57,9 @@ self.addEventListener('fetch', (event) => {
   // way around that.
   if (url.origin !== self.location.origin) return;
 
-  // Never cache the admin panel or any API response.
-  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/api/')) return;
+  // Never cache the admin panel, contributor accounts or any API response:
+  // those are personal or live, and a stale copy would be wrong or leak.
+  if (url.pathname.startsWith('/admin') || url.pathname.startsWith('/account') || url.pathname.startsWith('/api/')) return;
 
   if (isAsset(url.pathname)) {
     event.respondWith(cacheFirst(request, ASSET_CACHE));
@@ -143,6 +134,7 @@ async function trimPageCache() {
 
 function isAsset(pathname) {
   return pathname.startsWith('/assets/')
+    || pathname.startsWith('/themes/')
     || pathname.startsWith('/media/')
     || pathname === '/manifest.webmanifest';
 }

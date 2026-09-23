@@ -6,7 +6,6 @@ namespace App\Http\Controllers;
 use App\Core\Config;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\View;
 use App\Support\Ephemeral;
 use App\Support\Privacy;
 
@@ -31,17 +30,14 @@ final class ChallengeController
 
     public static function show(Request $request, string $reason = '', int $retryAfter = 30): Response
     {
-        $html = View::page('public.challenge', 'public.layout', [
-            'nonce'      => self::issueNonce($request->ip),
-            'difficulty' => Config::int('security.bot_gate.pow_difficulty', 16),
-            'retryAfter' => $retryAfter,
-            'pageTitle'  => 'یک لحظه…',
-            'bodyClass'  => 'page-challenge',
-            'noIndex'    => true,
-            'scripts'    => ['/assets/js/challenge.js'],
-        ]);
+        $nonce = self::issueNonce($request->ip);
+        $difficulty = Config::int('security.bot_gate.pow_difficulty', 16);
 
-        return Response::html($html, 429)
+        return \App\Http\Page::render(
+            'challenge',
+            static fn(\App\Core\Template\Theme $t) => \App\Http\ViewModels::challenge($t, $nonce, $difficulty, $retryAfter),
+            429
+        )
             ->withHeader('Retry-After', (string) max(1, $retryAfter))
             ->noCache();
     }

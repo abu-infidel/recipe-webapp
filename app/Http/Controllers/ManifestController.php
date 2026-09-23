@@ -99,14 +99,7 @@ final class ManifestController
 
     public static function aboutForAi(Request $request): Response
     {
-        $html = View::page('public.about_ai', 'public.layout', [
-            'tree'      => FieldRepository::tree(),
-            'total'     => self::publishedCount(),
-            'pageTitle' => 'درباره این سایت برای دستیارهای هوش مصنوعی',
-            'bodyClass' => 'page-about-ai',
-        ]);
-
-        return Response::html($html)->cacheFor(3600);
+        return \App\Http\Page::render('about', \App\Http\ViewModels::about(...))->cacheFor(3600);
     }
 
     public static function robots(Request $request): Response

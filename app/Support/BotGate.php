@@ -32,6 +32,8 @@ final class BotGate
         '/sitemap.xml',
         '/about-for-ai',
         '/manifest.webmanifest',
+        '/sw.js',
+        '/offline',
     ];
 
     /**

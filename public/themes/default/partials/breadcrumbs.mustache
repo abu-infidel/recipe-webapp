@@ -1,0 +1,6 @@
+<nav class="breadcrumbs" aria-label="مسیر">
+  {{#breadcrumbs}}
+    {{^is_last}}<a href="{{href}}">{{title}}</a><span aria-hidden="true">/</span>{{/is_last}}
+    {{#is_last}}<a href="{{href}}">{{title}}</a>{{/is_last}}
+  {{/breadcrumbs}}
+</nav>

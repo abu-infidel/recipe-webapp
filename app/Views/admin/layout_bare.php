@@ -15,7 +15,7 @@
 <title><?= e($pageTitle ?? 'Admin') ?></title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="<?= e(asset('/assets/img/icon.svg')) ?>" type="image/svg+xml">
-<link rel="stylesheet" href="<?= e(asset('/assets/css/admin.css')) ?>">
+<link rel="stylesheet" href="<?= e(asset('/assets/admin/admin.css')) ?>">
 </head>
 <body class="admin">
 <div class="login-shell"><?= $content ?></div>

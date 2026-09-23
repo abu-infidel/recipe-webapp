@@ -37,6 +37,26 @@ final class Url
         return self::fromContentPath(rtrim($fieldPath, '/') . '/' . $slug);
     }
 
+    /**
+     * The form to use in an href on the page itself: root-relative when the
+     * target is on this host, absolute otherwise (subdomain mode).
+     *
+     * Absolute URLs are right for canonical tags, sitemaps and social tags,
+     * but in-page links should not hard-code the scheme and host — during
+     * development the configured host differs from the one being browsed,
+     * and a cross-origin link also sidesteps the service worker.
+     */
+    public static function href(string $absolute): string
+    {
+        $base = self::base();
+
+        if ($absolute === $base || $absolute === $base . '/') {
+            return '/';
+        }
+
+        return str_starts_with($absolute, $base . '/') ? substr($absolute, strlen($base)) : $absolute;
+    }
+
     public static function search(string $query = ''): string
     {
         $url = self::base() . '/search';

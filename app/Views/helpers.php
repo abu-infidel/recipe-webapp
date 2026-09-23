@@ -35,35 +35,8 @@ function asset(string $path): string
     return Url::asset($path);
 }
 
-/**
- * Gregorian date rendered in the Persian (Jalali) calendar.
- *
- * intl is available on the host (CloudLinux ships it), but fall back to an
- * ISO date rather than fataling if it ever is not.
- */
+/** Gregorian date rendered in the Persian (Jalali) calendar. */
 function jalali(?string $datetime, string $pattern = 'd MMMM y'): string
 {
-    if ($datetime === null || $datetime === '') {
-        return '';
-    }
-
-    $timestamp = strtotime($datetime);
-    if ($timestamp === false) {
-        return '';
-    }
-
-    if (!class_exists(\IntlDateFormatter::class)) {
-        return date('Y-m-d', $timestamp);
-    }
-
-    $formatter = new \IntlDateFormatter(
-        'fa_IR@calendar=persian',
-        \IntlDateFormatter::NONE,
-        \IntlDateFormatter::NONE,
-        \App\Core\Config::string('site.timezone', 'Asia/Tehran'),
-        \IntlDateFormatter::TRADITIONAL,
-        $pattern
-    );
-
-    return (string) $formatter->format($timestamp);
+    return \App\Support\Jalali::format($datetime, $pattern);
 }

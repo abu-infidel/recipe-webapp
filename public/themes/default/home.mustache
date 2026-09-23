@@ -1,0 +1,18 @@
+{{! The homepage holds no content: it is the menu. This markup is the
+    no-JavaScript version (real links, so crawlers follow them too); the
+    orbit script upgrades it in place using the tree island below. }}
+<div class="container orbit-page" id="menu" data-orbit>
+  <h1 class="orbit-page__title visually-hidden">{{site.name}}</h1>
+
+  <nav class="orbit" aria-label="موضوع‌ها">
+    <p class="orbit__center" aria-hidden="true">{{site.short_name}}</p>
+    <ul class="orbit__list">
+      {{#tree}}
+      <li><a class="orbit__node" href="{{href}}" data-slug="{{slug}}"{{#accent}} style="--node-accent: {{accent}}"{{/accent}}>{{title}}</a></li>
+      {{/tree}}
+    </ul>
+    {{^has_tree}}<p class="orbit__empty">هنوز موضوعی منتشر نشده است.</p>{{/has_tree}}
+  </nav>
+</div>
+
+<script type="application/json" id="tree-data">{{tree_json}}</script>

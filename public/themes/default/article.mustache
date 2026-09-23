@@ -1,0 +1,85 @@
+<div class="container article-layout" data-toc="{{toc_side}}">
+
+  {{#has_toc}}
+  <aside class="article-sidebar">
+    <button class="toc-toggle" type="button" data-toc-toggle aria-expanded="false" aria-controls="toc">
+      فهرست مطالب
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <nav class="toc" id="toc" data-toc aria-label="فهرست مطالب">
+      <p class="toc__title">فهرست مطالب</p>
+      <ul>
+        {{#toc}}<li><a href="{{href}}">{{text}}</a>{{#has_children}}{{> toc-list}}{{/has_children}}</li>{{/toc}}
+      </ul>
+    </nav>
+    {{ads.sidebar}}
+  </aside>
+  {{/has_toc}}
+
+  <article class="article">
+    <header class="article__header">
+      {{> breadcrumbs}}
+      <h1 class="article__title">{{article.title}}</h1>
+      <div class="article__meta">
+        {{#article.kind_label}}<span class="chip chip--accent">{{article.kind_label}}</span>{{/article.kind_label}}
+        <span class="chip">{{article.reading_minutes_fa}} دقیقه مطالعه</span>
+        {{#article.updated_fa}}<span>به‌روزرسانی: {{article.updated_fa}}</span>{{/article.updated_fa}}
+        {{#article.author}}<span>نویسنده: {{article.author}}</span>{{/article.author}}
+        {{#has_references}}<span><a href="#references">{{reference_count_fa}} منبع</a></span>{{/has_references}}
+      </div>
+    </header>
+
+    {{#hero}}
+    <figure class="article__hero">
+      <img src="{{src}}" {{#srcset}}srcset="{{srcset}}" sizes="(min-width: 60rem) 820px, 100vw" {{/srcset}}alt="{{alt}}" width="{{width}}" height="{{height}}" fetchpriority="high" decoding="async">
+      <figcaption>
+        <span>{{caption}}</span>
+        {{! Readers are told when an image was generated rather than photographed. }}
+        {{#ai_generated}}<span class="ai-badge">تصویر ساخته‌شده با هوش مصنوعی</span>{{/ai_generated}}
+      </figcaption>
+    </figure>
+    {{/hero}}
+
+    {{ads.top}}
+
+    {{#article.summary}}<p class="article__summary">{{article.summary}}</p>{{/article.summary}}
+
+    {{#recipe}}{{> recipe}}{{/recipe}}
+
+    <div class="prose">{{article.body}}</div>
+
+    {{ads.bottom}}
+
+    {{#has_references}}
+    <section class="article-section" id="references">
+      <h2 class="article-section__title">منابع</h2>
+      <ol class="references">
+        {{#references}}
+        <li id="{{anchor}}">
+          <span class="references__marker">{{marker_fa}}.</span>
+          <span>
+            {{#href}}<a class="references__title" href="{{href}}" rel="nofollow noopener" target="_blank">{{title}}</a>{{/href}}
+            {{^href}}<span class="references__title">{{title}}</span>{{/href}}
+            <span class="references__source">{{domain}}{{#author}} · {{author}}{{/author}}{{#date}} · {{date}}{{/date}}</span>
+          </span>
+        </li>
+        {{/references}}
+      </ol>
+    </section>
+    {{/has_references}}
+
+    {{#has_related}}
+    <section class="article-section">
+      <h2 class="article-section__title">موضوعات مرتبط</h2>
+      <div class="card-grid">{{#related}}{{> card}}{{/related}}</div>
+    </section>
+    {{/has_related}}
+
+    {{#has_neighbours}}
+    <nav class="neighbours" aria-label="نوشته‌های پیشین و پسین">
+      {{#neighbours.previous}}<a href="{{href}}"><small>پیشین</small>{{title}}</a>{{/neighbours.previous}}
+      {{#neighbours.next}}<a href="{{href}}"><small>پسین</small>{{title}}</a>{{/neighbours.next}}
+    </nav>
+    {{/has_neighbours}}
+  </article>
+</div>

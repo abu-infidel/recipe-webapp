@@ -197,7 +197,7 @@ final class PersianTextTest extends TestCase
     // ---- shared fixture --------------------------------------------------
 
     /**
-     * The fixture is also run against public/assets/js/persian.js by
+     * The fixture is also run against public/assets/core/persian.js by
      * tools/tests/run-js.js. Changing behaviour here without changing it there
      * makes the instant-search box suggest articles the server cannot find.
      */

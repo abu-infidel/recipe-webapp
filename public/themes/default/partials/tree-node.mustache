@@ -1,0 +1,2 @@
+{{! Recursive: every tree node always carries `children`, possibly empty. }}
+<li><a href="{{href}}">{{title}}</a>{{#article_count}} <small>({{article_count_fa}})</small>{{/article_count}}{{#has_children}}<ul>{{#children}}{{> tree-node}}{{/children}}</ul>{{/has_children}}</li>

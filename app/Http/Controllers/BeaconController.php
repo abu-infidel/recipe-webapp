@@ -28,8 +28,14 @@ final class BeaconController
 
         if ($id > 0) {
             match ($type) {
+                // updated_at is set to itself on purpose. The column updates
+                // automatically on any change to the row, so without this a
+                // page view would move the article's "last updated" date —
+                // shown to readers, sent as dateModified, and written into the
+                // sitemap, where constant churn reads as low-quality content.
                 'view' => Database::run(
-                    "UPDATE articles SET view_count = view_count + 1 WHERE id = :id AND status = 'published'",
+                    "UPDATE articles SET view_count = view_count + 1, updated_at = updated_at
+                     WHERE id = :id AND status = 'published'",
                     ['id' => $id]
                 ),
                 'ad' => Ads::recordImpression($id),

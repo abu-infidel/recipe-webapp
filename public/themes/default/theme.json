@@ -1,0 +1,14 @@
+{
+  "name": "default",
+  "title": "Orbit",
+  "version": "1.0.0",
+  "api": 1,
+  "description": "Radial orbit menu on the homepage, a warm quiet palette, Vazirmatn throughout.",
+  "theme_color": "#b4541f",
+  "stylesheets": ["theme.css"],
+  "scripts": {
+    "*": ["site.js"],
+    "article": ["article.js"]
+  },
+  "preload_fonts": ["/assets/fonts/Vazirmatn-Regular.woff2"]
+}

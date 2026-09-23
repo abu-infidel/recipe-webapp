@@ -1,0 +1,3 @@
+{{! Recursive. Works because every contents node always carries a
+    `children` list (possibly empty) — see docs/UI-CONTRACT.md. }}
+<ul>{{#children}}<li><a href="{{href}}">{{text}}</a>{{#has_children}}{{> toc-list}}{{/has_children}}</li>{{/children}}</ul>

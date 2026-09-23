@@ -1,0 +1,51 @@
+<div class="recipe-panel">
+  <div class="recipe-facts">
+    {{#prep_minutes_fa}}<span class="chip">آماده‌سازی: {{prep_minutes_fa}} دقیقه</span>{{/prep_minutes_fa}}
+    {{#cook_minutes_fa}}<span class="chip">پخت: {{cook_minutes_fa}} دقیقه</span>{{/cook_minutes_fa}}
+    {{#difficulty}}<span class="chip">سختی: {{difficulty}}</span>{{/difficulty}}
+    {{#yield}}<span class="chip"><span data-base-yield="{{number}}">{{number_fa}}</span> {{unit}}</span>{{/yield}}
+  </div>
+
+  {{#has_ingredients}}
+  <div class="scaler" data-scaler>
+    <span>مقدار برای:</span>
+    <span class="scaler__buttons" role="group" aria-label="تغییر مقدار مواد">
+      <button type="button" data-factor="0.5" aria-pressed="false">نصف</button>
+      <button type="button" data-factor="1" aria-pressed="true">اصلی</button>
+      <button type="button" data-factor="2" aria-pressed="false">دو برابر</button>
+      <button type="button" data-factor="3" aria-pressed="false">سه برابر</button>
+    </span>
+  </div>
+
+  <div>
+    <h2 id="ingredients">مواد لازم</h2>
+    <ul class="ingredients">
+      {{#ingredients}}
+      <li>
+        <span class="ingredients__amount">
+          {{#amount_base}}<span data-base-amount="{{amount_base}}">{{amount_fa}}</span>{{/amount_base}}
+          {{#amount_text}}<span>{{amount_text}}</span>{{/amount_text}}
+          {{unit}}
+        </span>
+        <span>{{name}}{{#has_note}} <small>({{note}})</small>{{/has_note}}</span>
+      </li>
+      {{/ingredients}}
+    </ul>
+  </div>
+  {{/has_ingredients}}
+
+  {{#has_steps}}
+  <div>
+    <h2 id="steps">مراحل پخت</h2>
+    <ol class="steps" data-steps data-article="{{article.id}}">
+      {{#steps}}
+      <li id="{{id}}">
+        <input type="checkbox" id="{{id}}-done" aria-label="مرحله {{number_fa}} انجام شد">
+        <label class="steps__text" for="{{id}}-done"><span class="steps__number">{{number_fa}}.</span> {{text}}</label>
+      </li>
+      {{/steps}}
+    </ol>
+    <p><button class="rail__back" type="button" data-steps-reset>پاک کردن علامت‌ها</button></p>
+  </div>
+  {{/has_steps}}
+</div>

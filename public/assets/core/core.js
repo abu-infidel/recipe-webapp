@@ -1,134 +1,16 @@
 /**
- * Site-wide behaviour: theme toggle and the instant-search box.
+ * Core behaviour. Not part of any theme.
  *
- * No cookies. The theme choice is a per-device preference in localStorage;
- * the search box talks only to this site's own JSON endpoint.
+ * Everything here protects something a redesign must not be able to break by
+ * accident: offline reading, anonymous counting, and ad accounting. It is
+ * driven entirely by markup hooks, so a theme opts in by emitting them:
+ *
+ *   <meta name="article-id">      added to <head> by core on article pages
+ *   [data-ad-slot]                ad markup, supplied whole by core
+ *   [data-save-offline]           a button with data-urls='["/a","/b"]'
+ *
+ * A theme adds its own script for presentation; it never needs to edit this.
  */
-(function () {
-  'use strict';
-
-  // ---------------------------------------------------------------- theme
-
-  var THEME_KEY = 'theme';
-
-  function readTheme() {
-    try { return window.localStorage.getItem(THEME_KEY); } catch (e) { return null; }
-  }
-  function writeTheme(value) {
-    try { window.localStorage.setItem(THEME_KEY, value); } catch (e) { /* nothing to do */ }
-  }
-
-  var toggle = document.querySelector('[data-theme-toggle]');
-  if (toggle) {
-    var apply = function (theme) {
-      if (theme) document.documentElement.setAttribute('data-theme', theme);
-      else document.documentElement.removeAttribute('data-theme');
-
-      var dark = theme === 'dark' ||
-        (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      toggle.setAttribute('aria-label', dark ? 'حالت روشن' : 'حالت تیره');
-      toggle.setAttribute('aria-pressed', String(dark));
-    };
-
-    apply(readTheme());
-
-    toggle.addEventListener('click', function () {
-      var current = document.documentElement.getAttribute('data-theme');
-      var systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var next = current ? (current === 'dark' ? 'light' : 'dark') : (systemDark ? 'light' : 'dark');
-
-      writeTheme(next);
-      apply(next);
-    });
-  }
-
-  // -------------------------------------------------------- instant search
-
-  var box = document.querySelector('[data-search]');
-  if (!box) return;
-
-  var input = box.querySelector('input[type="search"]');
-  var list = box.querySelector('[data-suggestions]');
-  if (!input || !list) return;
-
-  var timer = null;
-  var controller = null;
-  var selected = -1;
-
-  function clear() {
-    list.innerHTML = '';
-    selected = -1;
-    input.setAttribute('aria-expanded', 'false');
-  }
-
-  function render(items) {
-    if (!items.length) { clear(); return; }
-
-    list.innerHTML = items.map(function (item) {
-      var href = '/' + String(item.field_path).split('/').map(encodeURIComponent).join('/') +
-        '/' + encodeURIComponent(item.slug);
-      return '<li role="option" aria-selected="false"><a href="' + href + '">' +
-        escapeHtml(item.title_fa) +
-        '<small>' + escapeHtml(String(item.field_path).split('/').join(' ← ')) + '</small>' +
-        '</a></li>';
-    }).join('');
-
-    selected = -1;
-    input.setAttribute('aria-expanded', 'true');
-  }
-
-  function highlight(delta) {
-    var options = list.querySelectorAll('li');
-    if (!options.length) return;
-
-    selected = (selected + delta + options.length) % options.length;
-    for (var i = 0; i < options.length; i++) {
-      options[i].setAttribute('aria-selected', String(i === selected));
-    }
-  }
-
-  input.addEventListener('input', function () {
-    window.clearTimeout(timer);
-    var query = input.value.trim();
-
-    if (query.length < 2) { clear(); return; }
-
-    // Debounced so a fast typist does not fire a request per keystroke; the
-    // host is small and this endpoint is rate limited like any other.
-    timer = window.setTimeout(function () {
-      if (controller) controller.abort();
-      controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-
-      window.fetch('/api/search.json?q=' + encodeURIComponent(query), {
-        signal: controller ? controller.signal : undefined,
-        headers: { 'Accept': 'application/json' }
-      })
-        .then(function (response) { return response.ok ? response.json() : { suggestions: [] }; })
-        .then(function (data) { render(data.suggestions || []); })
-        .catch(function () { /* aborted or offline — leave the last result up */ });
-    }, 180);
-  });
-
-  input.addEventListener('keydown', function (event) {
-    if (event.key === 'ArrowDown') { event.preventDefault(); highlight(1); }
-    else if (event.key === 'ArrowUp') { event.preventDefault(); highlight(-1); }
-    else if (event.key === 'Escape') { clear(); }
-    else if (event.key === 'Enter' && selected >= 0) {
-      var link = list.querySelectorAll('li')[selected].querySelector('a');
-      if (link) { event.preventDefault(); window.location.href = link.href; }
-    }
-  });
-
-  document.addEventListener('click', function (event) {
-    if (!box.contains(event.target)) clear();
-  });
-
-  function escapeHtml(value) {
-    return String(value)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  }
-})();
 
 /**
  * Service worker registration and the "save this section offline" button.
@@ -202,7 +84,8 @@
 
   // --------------------------------------------------------------- views
 
-  var articleId = Number(document.body.getAttribute('data-article-id') || 0);
+  var meta = document.querySelector('meta[name="article-id"]');
+  var articleId = Number(meta ? meta.getAttribute('content') : 0);
   if (articleId > 0) {
     // Deferred until the page is actually visible, so a tab opened in the
     // background and closed unseen is not counted.

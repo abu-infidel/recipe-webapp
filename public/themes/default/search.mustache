@@ -1,0 +1,47 @@
+<div class="container">
+  <header class="page-header">
+    <h1 class="page-header__title">
+      {{#has_query}}نتیجه‌های «{{query}}»{{/has_query}}
+      {{^has_query}}جست‌وجو{{/has_query}}
+    </h1>
+    {{#has_query}}
+      <p class="page-header__blurb">
+        {{#has_results}}{{result_count_fa}} نتیجه در این صفحه{{/has_results}}
+        {{^has_results}}چیزی پیدا نشد.{{/has_results}}
+      </p>
+    {{/has_query}}
+  </header>
+
+  {{^has_query}}
+  <div class="empty-state">
+    <p class="empty-state__title">چه چیزی می‌خواهید پیدا کنید؟</p>
+    <p>نام یک غذا، یک ماده اولیه یا یک موضوع را بنویسید.</p>
+  </div>
+  {{/has_query}}
+
+  {{#has_query}}
+    {{^has_results}}
+    <div class="empty-state">
+      <p class="empty-state__title">نتیجه‌ای پیدا نشد</p>
+      <p>املای واژه را بررسی کنید یا واژه‌ای کلی‌تر را امتحان کنید.</p>
+    </div>
+    {{/has_results}}
+
+    {{#has_results}}
+    <ol class="result-list">
+      {{#results}}
+      <li class="result">
+        <h2 class="result__title"><a href="{{href}}">{{title}}</a></h2>
+        <p class="result__path">{{path_label}}</p>
+        <p class="result__snippet">{{snippet}}</p>
+      </li>
+      {{/results}}
+    </ol>
+
+    <nav class="pagination" aria-label="صفحه‌بندی">
+      {{#pagination.previous_href}}<a href="{{pagination.previous_href}}">صفحه پیش</a>{{/pagination.previous_href}}
+      {{#pagination.next_href}}<a href="{{pagination.next_href}}">صفحه بعد</a>{{/pagination.next_href}}
+    </nav>
+    {{/has_results}}
+  {{/has_query}}
+</div>

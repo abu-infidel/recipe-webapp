@@ -29,7 +29,7 @@ $links = [
 <title><?= e($pageTitle ?? 'Admin') ?> — Admin</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" href="<?= e(asset('/assets/img/icon.svg')) ?>" type="image/svg+xml">
-<link rel="stylesheet" href="<?= e(asset('/assets/css/admin.css')) ?>">
+<link rel="stylesheet" href="<?= e(asset('/assets/admin/admin.css')) ?>">
 <?php /* Persian drafts inside the admin still need the Persian face. */ ?>
 <style>
   @font-face {
@@ -74,7 +74,7 @@ $links = [
   </main>
 </div>
 
-<script src="<?= e(asset('/assets/js/admin-common.js')) ?>" defer></script>
+<script src="<?= e(asset('/assets/admin/common.js')) ?>" defer></script>
 <?php foreach (($scripts ?? []) as $script): ?>
 <script src="<?= e(asset($script)) ?>" defer></script>
 <?php endforeach; ?>

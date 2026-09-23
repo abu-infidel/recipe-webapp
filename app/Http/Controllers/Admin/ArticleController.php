@@ -105,7 +105,7 @@ final class ArticleController extends AdminController
                 'SELECT * FROM job_events WHERE job_id = :job ORDER BY id LIMIT 50',
                 ['job' => (int) $article['ai_job_id']]
             ),
-            'scripts'    => ['/assets/js/admin.js'],
+            'scripts'    => ['/assets/admin/review.js'],
         ]);
     }
 

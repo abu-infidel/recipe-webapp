@@ -28,7 +28,7 @@ add an API call to a controller.
 ## Persian text
 
 `app/Support/PersianText.php` is the single source of truth for how Persian is
-compared and indexed. `public/assets/js/persian.js` mirrors it, and
+compared and indexed. `public/assets/core/persian.js` mirrors it, and
 `tools/tests/fixtures/persian.json` is run against both. **If you change one,
 change the other**, or the instant-search box will suggest articles the server
 cannot find.

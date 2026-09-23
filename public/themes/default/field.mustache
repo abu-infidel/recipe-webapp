@@ -1,0 +1,51 @@
+<div class="container">
+  <header class="page-header">
+    {{> breadcrumbs}}
+    <h1 class="page-header__title">{{field.title}}</h1>
+    {{#field.blurb}}<p class="page-header__blurb">{{field.blurb}}</p>{{/field.blurb}}
+  </header>
+
+  {{#has_children}}
+  <section aria-label="زیربخش‌ها">
+    <div class="menu__level" data-density="medium">
+      {{#children}}
+      <a class="tile" href="{{href}}"{{#accent}} style="--tile-accent: {{accent}}"{{/accent}}>
+        {{#icon}}<span class="tile__icon" aria-hidden="true">{{icon}}</span>{{/icon}}
+        <span class="tile__title">{{title}}</span>
+        <span class="tile__meta"><span>{{article_count_fa}} نوشته</span></span>
+      </a>
+      {{/children}}
+    </div>
+  </section>
+  {{/has_children}}
+
+  <section class="article-section" aria-label="نوشته‌ها">
+    <h2 class="article-section__title">{{articles_heading}}</h2>
+
+    {{#has_articles}}
+    <div class="card-grid">
+      {{#articles}}{{> card}}{{/articles}}
+    </div>
+
+    <p class="save-offline">
+      {{! core.js handles data-save-offline: it pulls these pages into the
+          device's cache so the section can be read with no connection. }}
+      <button class="rail__back" type="button" data-save-offline data-urls="{{offline.urls_json}}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+        </svg>
+        ذخیره این بخش برای خواندن آفلاین
+      </button>
+    </p>
+    {{/has_articles}}
+
+    {{^has_articles}}
+    <div class="empty-state">
+      <p class="empty-state__title">هنوز نوشته‌ای اینجا نیست</p>
+      <p>این بخش به‌زودی تکمیل می‌شود.</p>
+    </div>
+    {{/has_articles}}
+  </section>
+
+  {{ads.footer}}
+</div>

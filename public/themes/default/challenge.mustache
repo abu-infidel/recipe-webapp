@@ -1,0 +1,11 @@
+{{! core's challenge.js solves the proof of work using data-nonce and
+    data-difficulty, then reloads. Keep both attributes and data-challenge. }}
+<div class="container">
+  <div class="empty-state" data-challenge data-nonce="{{challenge.nonce}}" data-difficulty="{{challenge.difficulty}}">
+    <p class="empty-state__title">یک لحظه صبر کنید…</p>
+    <p data-challenge-status>در حال بررسی مرورگر شما. این کار چند لحظه طول می‌کشد.</p>
+    <noscript>
+      <p>درخواست‌های زیادی از این نشانی دریافت شده است. لطفاً {{challenge.retry_minutes_fa}} دقیقه دیگر دوباره تلاش کنید.</p>
+    </noscript>
+  </div>
+</div>

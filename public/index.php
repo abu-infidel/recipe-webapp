@@ -116,13 +116,8 @@ $router->get('/llms.txt', ManifestController::llmsTxt(...));
 $router->get('/.well-known/ai-manifest.json', ManifestController::aiManifest(...));
 $router->get('/about-for-ai', ManifestController::aboutForAi(...));
 $router->get('/robots.txt', ManifestController::robots(...));
-$router->get('/offline', static fn(Request $r) => Response::html(
-    \App\Core\View::page('public.offline', 'public.layout', [
-        'pageTitle' => 'آفلاین',
-        'bodyClass' => 'page-offline',
-        'noIndex'   => true,
-    ])
-)->cacheFor(86400));
+$router->get('/sw.js', \App\Http\Controllers\ServiceWorkerController::script(...));
+$router->get('/offline', static fn(Request $r) => \App\Http\Page::render('offline', \App\Http\ViewModels::offline(...))->cacheFor(86400));
 $router->get('/sitemap.xml', ManifestController::sitemap(...));
 
 // ------------------------------------------------------------ content lookup
@@ -176,6 +171,11 @@ if (
     && $request->path !== '/search'
     && \App\Http\Controllers\Admin\AdminAuthProbe::isAnonymous()
     && str_contains($response->headers()['cache-control'] ?? '', 'public')
+    // HTML only. The web server serves a cached entry as index.html, so a
+    // cached robots.txt, sitemap.xml or llms.txt would go out as text/html
+    // from the second request on — search consoles reject a sitemap served
+    // that way, and the AI manifest stops being JSON.
+    && str_starts_with($response->headers()['content-type'] ?? '', 'text/html')
 ) {
     \App\Core\PageCache::put(
         Config::string('site.domain'),

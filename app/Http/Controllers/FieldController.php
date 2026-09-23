@@ -5,41 +5,20 @@ namespace App\Http\Controllers;
 
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\View;
-use App\Domain\ArticleRepository;
-use App\Domain\FieldRepository;
+use App\Core\Template\Theme;
+use App\Http\Page;
+use App\Http\ViewModels;
 
 /**
- * A field page: the articles in this branch, plus any sub-fields.
+ * A field page: sub-fields, then the articles in this branch.
  *
- * A leaf field shows its articles. A branch with children shows those
- * children as tiles and, beneath them, the most recent articles from the
- * whole subtree — so a reader who lands here from a search is never told the
- * section is empty when it plainly is not.
+ * A branch with children shows the latest articles from its whole subtree, so
+ * a reader landing here from search is never told a full section is empty.
  */
 final class FieldController
 {
     public static function show(Request $request, array $field): Response
     {
-        $fieldId = (int) $field['id'];
-        $children = FieldRepository::children($fieldId);
-
-        $articles = $children === []
-            ? ArticleRepository::inField($fieldId, 60)
-            : ArticleRepository::inSubtree((string) $field['path'], 24);
-
-        $html = View::page('public.field', 'public.layout', [
-            'field'       => $field,
-            'children'    => $children,
-            'articles'    => $articles,
-            'ancestors'   => FieldRepository::ancestors((string) $field['path']),
-            'pageTitle'   => $field['title_fa'],
-            'description' => $field['blurb_fa'] ?? '',
-            'bodyClass'   => 'page-field',
-            'accent'      => $field['accent_color'] ?? null,
-            'canonical'   => \App\Core\Url::field((string) $field['path']),
-        ]);
-
-        return Response::html($html)->cacheFor(1800);
+        return Page::render('field', static fn(Theme $t) => ViewModels::field($t, $field))->cacheFor(1800);
     }
 }

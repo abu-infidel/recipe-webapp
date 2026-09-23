@@ -6,7 +6,9 @@ namespace App\Http\Controllers;
 use App\Core\Config;
 use App\Core\Request;
 use App\Core\Response;
-use App\Core\View;
+use App\Core\Template\Theme;
+use App\Http\Page;
+use App\Http\ViewModels;
 use App\Domain\SearchIndex;
 
 final class SearchController
@@ -28,19 +30,10 @@ final class SearchController
         $hasMore = count($results) > $perPage;
         $results = array_slice($results, 0, $perPage);
 
-        $html = View::page('public.search', 'public.layout', [
-            'query'     => $query,
-            'results'   => $results,
-            'page'      => $page,
-            'hasMore'   => $hasMore,
-            'pageTitle' => $query === '' ? 'جست‌وجو' : 'جست‌وجو: ' . $query,
-            'bodyClass' => 'page-search',
-            // A results page is per-query, not per-visitor, but there is no
-            // value in search engines indexing them.
-            'noIndex'   => true,
-        ]);
-
-        return Response::html($html)->noCache();
+        return Page::render(
+            'search',
+            static fn(Theme $t) => ViewModels::search($t, $query, $results, $page, $hasMore)
+        )->noCache();
     }
 
     /** Instant-search suggestions for the header box. */
